@@ -37,8 +37,20 @@ Live prototypes (claude.ai artifacts, private to John):
    discussed: a scene switcher, or the scene changing with the season (garland in
    November, village through Advent from 1 December, frosted window on Christmas
    Eve/Day). Ask John before building.
-4. **Deploy.** John deploys his projects to Vercel (GitHub user `Doberjohn`). A static
-   site with no build step is fine.
+4. ~~**Deploy.**~~ Done (November 2026). See "Deployment" below.
+
+## Deployment
+
+- **Live:** https://christmas-countdown-two.vercel.app (Vercel's auto-assigned address;
+  `christmas-countdown.vercel.app` was taken). No custom domain yet.
+- **GitHub:** `Doberjohn/christmas-countdown` (public, so this file is readable there).
+  Default branch `main`.
+- **Vercel:** project `christmas-countdown` in the team "johnfanidis' projects", linked
+  to the GitHub repo. Every push to `main` deploys to production; other branches and
+  PRs get preview deployments. Static site: no framework, no build command.
+- `/` is the frosted window via the rewrite in `vercel.json` (see Status).
+- `.vercelignore` keeps `CLAUDE.md`, `README.md`, `serve.json` and `.claude/` off the
+  live site (they return 404). Add any new repo-only files there too.
 
 ## Shared behaviour (keep consistent across scenes)
 
