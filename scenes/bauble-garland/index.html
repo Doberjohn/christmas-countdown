@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bauble Garland Countdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,500;0,600;1,500&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>
+:root {
+  /* Layout: the garland is strung across the top of a pale wall in winter-morning light; the count sits bottom left, the controls bottom right. */
+  --wall: #e6ecf1;
+  --wall-high: #f0f4f7;
+  --wall-warm: #f4eee7;
+  --ink: #1e2b36;
+  --ink-soft: #566472;
+  --accent: #23439c;
+  --card: #fbfaf7;
+  --font-display: "Bodoni Moda", "Bodoni 72", "Didot", Georgia, serif;
+  --font-body: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+
+body {
+  display: grid;
+  grid-template-rows: minmax(260px, 1fr) auto;
+  background: linear-gradient(172deg, var(--wall-high) 0%, var(--wall) 46%, var(--wall-warm) 100%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Morning light falling through a window onto the wall */
+.sun {
+  position: fixed;
+  left: -8vw;
+  top: -8vh;
+  width: 62vw;
+  height: 88vh;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0) 47.5%, rgba(96, 110, 124, 0.16) 47.5% 51.5%, rgba(0, 0, 0, 0) 51.5%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 44%, rgba(96, 110, 124, 0.16) 44% 48%, rgba(0, 0, 0, 0) 48%),
+    linear-gradient(160deg, rgba(255, 247, 230, 0.95), rgba(255, 240, 218, 0.7));
+  transform: skewX(-16deg) rotate(-6deg);
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 52%, rgba(0, 0, 0, 0) 100%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 52%, rgba(0, 0, 0, 0) 100%);
+  filter: blur(10px);
+  opacity: 0.75;
+}
+
+.garland {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+}
+.garland canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.panel {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px 48px;
+  padding: 4px clamp(16px, 4vw, 56px) clamp(16px, 3.4vh, 34px);
+}
+
+.count { min-width: 0; }
+.days { display: flex; align-items: baseline; gap: 0.3em; flex-wrap: wrap; }
+.days-num {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(4.2rem, 2.8rem + 6vw, 8.6rem);
+  line-height: 0.82;
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.days-num.is-xmas {
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(2.6rem, 1.9rem + 3.4vw, 4.8rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.days-unit { font-size: clamp(1.15rem, 1rem + 0.6vw, 1.6rem); font-weight: 500; }
+
+.hms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em 1em;
+  margin-top: 0.55rem;
+  font-size: clamp(0.98rem, 0.94rem + 0.25vw, 1.15rem);
+  font-variant-numeric: tabular-nums;
+}
+.hms b { font-family: var(--font-display); font-weight: 600; font-size: 1.4em; }
+.hms i { font-style: normal; color: var(--ink-soft); }
+
+.lead { margin: 0.75rem 0 0; font-weight: 500; line-height: 1.35; max-width: 40ch; text-wrap: balance; }
+.hint { margin: 0.25rem 0 0; color: var(--ink-soft); font-size: 0.92rem; line-height: 1.45; max-width: 48ch; }
+
+.controls {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+  width: min(100%, 360px);
+}
+.preview {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+}
+.preview label { font-weight: 600; font-size: 0.9rem; }
+.preview output { grid-column: 1 / -1; font-size: 0.9rem; color: var(--ink-soft); }
+.preview input { width: 100%; accent-color: var(--accent); margin: 0; }
+
+.btn-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+.btn {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 999px;
+  padding: 0.5em 1.05em;
+  cursor: pointer;
+  border: 1px solid rgba(30, 43, 54, 0.26);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.btn:hover { background: rgba(255, 255, 255, 0.9); border-color: rgba(30, 43, 54, 0.45); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn-primary { background: var(--ink); color: #f7f4ef; border-color: var(--ink); }
+.btn-primary:hover { background: #2c3d4b; border-color: #2c3d4b; }
+
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.card {
+  position: absolute;
+  z-index: 4;
+  width: min(320px, calc(100% - 24px));
+  padding: 16px 18px 14px;
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 20px 44px -18px rgba(30, 43, 54, 0.5), 0 0 0 1px rgba(30, 43, 54, 0.08);
+}
+.card-date { margin: 0; font-size: 0.82rem; font-weight: 600; color: var(--accent); }
+.card h2 {
+  margin: 0.2rem 0 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.card p.body { margin: 0 0 0.8rem; line-height: 1.45; font-size: 0.95rem; }
+
+.tip {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgba(30, 43, 54, 0.9);
+  color: #fff;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 12px));
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+[hidden] { display: none !important; }
+
+@media (max-width: 680px) {
+  .panel { flex-direction: column; align-items: stretch; gap: 14px; }
+  .controls { width: 100%; justify-items: stretch; }
+  .btn-row { justify-content: flex-start; }
+  .lead { margin-top: 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="sun" aria-hidden="true"></div>
+<h1 class="sr-only">Christmas countdown garland</h1>
+<p class="sr-only" id="timer" role="timer" aria-live="off"></p>
+
+<div class="garland">
+  <canvas id="garland" role="img" aria-label="A garland of glass baubles, one for each sleep until Christmas. Brush them to make them swing and tap one to ring it."></canvas>
+  <div class="tip" id="tip" hidden></div>
+  <div class="card" id="card" role="dialog" aria-labelledby="cardTitle" hidden>
+    <p class="card-date" id="cardDate"></p>
+    <h2 id="cardTitle"></h2>
+    <p class="body" id="cardBody"></p>
+    <button class="btn" id="cardClose" type="button">Close</button>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="count">
+    <div class="days"><span class="days-num" id="dNum">0</span><span class="days-unit" id="dUnit">days</span></div>
+    <div class="hms" id="hms">
+      <span><b id="hNum">00</b> <i id="hUnit">hours</i></span>
+      <span><b id="mNum">00</b> <i id="mUnit">minutes</i></span>
+      <span><b id="sNum">00</b> <i id="sUnit">seconds</i></span>
+    </div>
+    <p class="lead" id="lead">Counting the sleeps until Christmas morning</p>
+    <p class="hint" id="hint">One bauble for every sleep left. Brush past them to make them swing, tap one to ring it.</p>
+  </div>
+
+  <div class="controls">
+    <div class="preview">
+      <label for="day">Preview a day</label>
+      <input type="range" id="day" min="0" max="1" step="1" value="0">
+      <output id="dayOut" for="day">Today</output>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="openToday" type="button">Open today's bauble</button>
+      <button class="btn" id="backToday" type="button" disabled>Back to today</button>
+      <button class="btn" id="sound" type="button" aria-pressed="true">Sound on</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  'use strict';
+
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let reduce = mq.matches;
+
+  const $ = (s) => document.querySelector(s);
+  const wrap = $('.garland');
+  const cv = $('#garland');
+  const ctx = cv.getContext('2d');
+  const tip = $('#tip');
+  const card = $('#card'), cardDate = $('#cardDate'), cardTitle = $('#cardTitle'), cardBody = $('#cardBody'), cardClose = $('#cardClose');
+  const dNum = $('#dNum'), dUnit = $('#dUnit');
+  const hNum = $('#hNum'), hUnit = $('#hUnit'), mNum = $('#mNum'), mUnit = $('#mUnit'), sNum = $('#sNum'), sUnit = $('#sUnit');
+  const hmsEl = $('#hms'), leadEl = $('#lead'), hintEl = $('#hint'), timerEl = $('#timer');
+  const openBtn = $('#openToday'), slider = $('#day'), dayOut = $('#dayOut'), backBtn = $('#backToday'), soundBtn = $('#sound');
+
+  /* ---------- Dates ---------- */
+  const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const fmt = (d) => `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  const fmtY = (d) => `${fmt(d)} ${d.getFullYear()}`;
+  const plural = (n, a, b) => (n === 1 ? a : b);
+  const pad = (n) => String(n).padStart(2, '0');
+  const dayKey = (d) => Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  let offset = 0;
+  function simNow() {
+    const n = new Date();
+    if (!offset) return n;
+    return new Date(n.getFullYear(), n.getMonth(), n.getDate() + offset, n.getHours(), n.getMinutes(), n.getSeconds(), n.getMilliseconds());
+  }
+  function stateAt(now) {
+    const y = now.getFullYear();
+    const isXmas = now.getMonth() === 11 && now.getDate() === 25;
+    let target = new Date(y, 11, 25);
+    if (now >= new Date(y, 11, 26)) target = new Date(y + 1, 11, 25);
+    const s = Math.max(0, Math.floor((target - now) / 1000));
+    const sleeps = Math.round((Date.UTC(target.getFullYear(), 11, 25) - Date.UTC(y, now.getMonth(), now.getDate())) / 86400000);
+    return {
+      now, isXmas, target, sleeps,
+      d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), sec: s % 60
+    };
+  }
+
+  /* ---------- One activity for each day ---------- */
+  const ACTIVITIES = [
+    ['Make paper snowflakes', 'Fold a square of paper into a triangle three times, snip shapes along the edges, then unfold it. No two come out the same.'],
+    ['Bake melomakarona', 'Honey, orange and walnuts. Give the youngest the job of dipping them in the syrup.'],
+    ['Write to the grandparents', 'A letter, a drawing, or both. Post it today so it arrives before Christmas.'],
+    ['Have a carol singalong', 'Everyone picks one song. Someone keeps time on a triangle or a saucepan lid.'],
+    ['Make a paper chain', 'Cut strips of coloured paper and glue them into loops, one loop for every sleep left.'],
+    ['Dry orange slices for a garland', 'Bake thin orange slices in a very low oven for a few hours, then thread them on string.'],
+    ['Bake kourabiedes', 'Butter cookies buried in icing sugar. Aprons on, it gets everywhere.'],
+    ['Read a winter story aloud', 'Take turns reading a page each, with the big lights off and a lamp on.'],
+    ['Go on a lights walk', 'Wrap up after dark and count the decorated windows in your neighbourhood.'],
+    ['Make a pine cone bird feeder', 'Spread a pine cone with lard or nut butter, roll it in seeds and hang it outside.'],
+    ['Decorate a karavaki', 'Decorate a little Christmas boat, the old Greek island tradition, with lights or paper flags.'],
+    ['Make Christmas cards', 'Fold card in half, draw on the front, and write a real message inside for someone you love.'],
+    ['Hot chocolate night', 'Warm milk, good chocolate and a pinch of cinnamon. Everyone chooses their own topping.'],
+    ['Build a blanket fort', 'Chairs, blankets and cushions, then watch a Christmas film inside it.'],
+    ['Pick toys to give away', 'Choose a few toys or books you have outgrown for children who could use them.'],
+    ['Make salt dough ornaments', 'Mix two cups of flour, one cup of salt and about a cup of water. Cut out shapes, bake them low and slow until hard, then paint them.'],
+    ['Do a jigsaw together', 'Start one on the table and let anyone add a piece when they walk past.'],
+    ['Say it in five languages', 'Feliz Navidad, Joyeux Noël, Frohe Weihnachten, Buon Natale, Καλά Χριστούγεννα. Practise them at dinner.'],
+    ['Write two lists', 'One for wishes, one for the things you are thankful for this year.'],
+    ['Make a jar snow globe', 'Glue a small figure inside a jar lid, fill the jar with water, a little glycerine and glitter, and screw the lid on tight.'],
+    ['Draw your dream tree', 'Everyone draws the Christmas tree they would have if anything were possible, then swap drawings.'],
+    ['Board game evening', 'Phones in a basket, snacks on the table, and the youngest picks the game.'],
+    ['Decorate biscuits', 'Bake a simple batch and cover them in icing and sprinkles.'],
+    ['Call someone far away', 'Video call a friend or relative and sing them a carol.'],
+    ['Make an album of the year', 'Choose your favourite family photos from this year and put them in order.'],
+    ['Print your own wrapping paper', 'Cut a potato in half, carve a star into it, dip it in paint and stamp brown paper.'],
+    ['Paint a pine cone forest', 'Paint pine cones green, tip them with white, and stand them in a row on the table.'],
+    ['Leave a kind note', 'Write a thank-you note for a neighbour, a teacher or the person who delivers your post.'],
+    ['Pyjama pancake breakfast', 'Nobody gets dressed until the pancakes are gone.'],
+    ['Draw to The Nutcracker', "Put on Tchaikovsky's Nutcracker music and draw whatever it makes you think of."],
+    ['Ten minutes of stargazing', 'Wrap up in a blanket outside after dark and find the brightest light in the sky.'],
+    ['Make a jar lantern', 'Glue torn tissue paper onto a clean jar and put a battery tea light inside.'],
+    ['Cook dinner together', 'Everyone gets one job, from washing to stirring to setting the table.'],
+    ['Write to yourself', 'Write a letter to open next Christmas Day, seal it and hide it somewhere safe.'],
+    ['Decorate one corner', 'Pick one corner of the house and make it the most festive spot in it.']
+  ];
+  const EVE = ['Christmas Eve', 'Sing the kalanta in the morning, put out a plate of biscuits at night, and get to bed early.'];
+  function activityFor(d) {
+    if (d.getMonth() === 11 && d.getDate() === 24) return EVE;
+    return ACTIVITIES[((dayKey(d) % ACTIVITIES.length) + ACTIVITIES.length) % ACTIVITIES.length];
+  }
+
+  /* ---------- Glass ---------- */
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const seedFor = (d) => (dayKey(d) * 2654435761) >>> 0;
+
+  const JEWELS = [
+    [176, 21, 60],    // ruby
+    [11, 122, 85],    // emerald
+    [31, 79, 180],    // sapphire
+    [106, 46, 166],   // amethyst
+    [214, 160, 25],   // citrine
+    [13, 124, 134],   // teal
+    [207, 71, 120],   // rose
+    [160, 174, 186]   // silver
+  ];
+  const WHITE = [255, 255, 255], BLACK = [8, 12, 22];
+  const mix = (c, t, k) => c.map((v, i) => Math.round(v + (t[i] - v) * k));
+  const rgba = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+  function shapeDims(shape, s) {
+    if (shape === 'tear') return { w: s * 0.92, h: s * 1.3, mid: 0.64, split: 0.62, hl: 0.36 };
+    if (shape === 'oval') return { w: s * 0.8, h: s * 1.15, mid: 0.5, split: 0.5, hl: 0.17 };
+    if (shape === 'finial') return { w: s * 0.72, h: s * 1.9, mid: 0.27, split: 0.3, hl: 0.1 };
+    return { w: s, h: s, mid: 0.5, split: 0.5, hl: 0.16 };
+  }
+
+  function bodyPath(c, shape, cx, top, w, h) {
+    const r = w / 2;
+    c.beginPath();
+    if (shape === 'round') {
+      c.arc(cx, top + r, r, 0, Math.PI * 2);
+    } else if (shape === 'oval') {
+      c.ellipse(cx, top + h / 2, r, h / 2, 0, 0, Math.PI * 2);
+    } else if (shape === 'tear') {
+      c.moveTo(cx, top);
+      c.bezierCurveTo(cx + r * 0.3, top + h * 0.18, cx + r, top + h * 0.36, cx + r, top + h * 0.64);
+      c.bezierCurveTo(cx + r, top + h * 0.88, cx + r * 0.56, top + h, cx, top + h);
+      c.bezierCurveTo(cx - r * 0.56, top + h, cx - r, top + h * 0.88, cx - r, top + h * 0.64);
+      c.bezierCurveTo(cx - r, top + h * 0.36, cx - r * 0.3, top + h * 0.18, cx, top);
+      c.closePath();
+    } else {
+      c.moveTo(cx, top);
+      c.bezierCurveTo(cx + r * 0.35, top + h * 0.02, cx + r, top + h * 0.12, cx + r, top + h * 0.27);
+      c.bezierCurveTo(cx + r, top + h * 0.42, cx + r * 0.25, top + h * 0.55, cx + r * 0.12, top + h * 0.8);
+      c.lineTo(cx, top + h);
+      c.lineTo(cx - r * 0.12, top + h * 0.8);
+      c.bezierCurveTo(cx - r * 0.25, top + h * 0.55, cx - r, top + h * 0.42, cx - r, top + h * 0.27);
+      c.bezierCurveTo(cx - r, top + h * 0.12, cx - r * 0.35, top + h * 0.02, cx, top);
+      c.closePath();
+    }
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function radialFill(c, x, y, r, col, a) {
+    const g = c.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rgba(col, a));
+    g.addColorStop(1, rgba(col, 0));
+    c.fillStyle = g;
+    c.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+
+  function makeSprite(shape, C, deco, s) {
+    const dm = shapeDims(shape, s);
+    const { w, h } = dm;
+    const r = w / 2;
+    const pad = Math.max(2, s * 0.1);
+    const lh = Math.max(2.5, s * 0.16);
+    const ch = Math.max(2.5, s * 0.15);
+    const sw = w + pad * 2;
+    const bodyTop = lh + ch * 0.65;
+    const sh = bodyTop + h + pad;
+    const cvs = document.createElement('canvas');
+    cvs.width = Math.max(1, Math.ceil(sw * DPR));
+    cvs.height = Math.max(1, Math.ceil(sh * DPR));
+    const c = cvs.getContext('2d');
+    c.scale(DPR, DPR);
+    const cx = sw / 2;
+    const ymid = bodyTop + h * dm.mid;
+
+    // Glass body
+    bodyPath(c, shape, cx, bodyTop, w, h);
+    const hx = cx - r * 0.38, hy = bodyTop + h * dm.hl + r * 0.25;
+    const g = c.createRadialGradient(hx, hy, r * 0.05, cx, ymid, Math.max(r, h * 0.62) * 1.05);
+    g.addColorStop(0, rgba(mix(C, WHITE, 0.55)));
+    g.addColorStop(0.3, rgba(mix(C, WHITE, 0.12)));
+    g.addColorStop(0.72, rgba(C));
+    g.addColorStop(1, rgba(mix(C, BLACK, 0.55)));
+    c.fillStyle = g;
+    c.fill();
+
+    c.save();
+    bodyPath(c, shape, cx, bodyTop, w, h);
+    c.clip();
+
+    if (s >= 14) {
+      if (deco === 'band') {
+        const gold = c.createLinearGradient(cx - r, 0, cx + r, 0);
+        gold.addColorStop(0, '#8a6a26'); gold.addColorStop(0.4, '#f4dc92'); gold.addColorStop(0.7, '#c99e44'); gold.addColorStop(1, '#7a5a1e');
+        c.strokeStyle = gold;
+        c.lineWidth = s * 0.07;
+        c.beginPath(); c.ellipse(cx, ymid, r * 1.02, r * 0.2, 0, 0, Math.PI); c.stroke();
+        c.lineWidth = s * 0.018;
+        c.beginPath(); c.ellipse(cx, ymid + s * 0.09, r * 1.02, r * 0.2, 0, 0, Math.PI); c.stroke();
+        c.beginPath(); c.ellipse(cx, ymid - s * 0.09, r * 1.02, r * 0.2, 0, 0, Math.PI); c.stroke();
+      } else if (deco === 'stripes') {
+        c.strokeStyle = rgba(mix(C, WHITE, 0.55), 0.32);
+        c.lineWidth = s * 0.05;
+        for (let k = 1; k <= 3; k++) {
+          c.beginPath(); c.ellipse(cx, bodyTop + h / 2, r * 0.3 * k, h * 0.62, 0, 0, Math.PI * 2); c.stroke();
+        }
+      } else if (deco === 'dots') {
+        for (let k = 0; k < 13; k++) {
+          const a = Math.PI * (k / 12);
+          const x = cx - Math.cos(a) * r * 0.95;
+          const y = ymid + Math.sin(a) * r * 0.24;
+          c.fillStyle = k % 2 ? 'rgba(255,240,200,0.95)' : 'rgba(255,255,255,0.9)';
+          c.beginPath(); c.arc(x, y, s * 0.028, 0, Math.PI * 2); c.fill();
+        }
+        for (let k = 0; k < 7; k++) {
+          const a = Math.PI * (k / 6);
+          const x = cx - Math.cos(a) * r * 0.8;
+          const y = ymid - r * 0.42 + Math.sin(a) * r * 0.18;
+          c.fillStyle = 'rgba(255,245,215,0.85)';
+          c.beginPath(); c.arc(x, y, s * 0.02, 0, Math.PI * 2); c.fill();
+        }
+      }
+    }
+
+    // Reflection of the bright room along the lower right rim
+    radialFill(c, cx + r * 0.55, bodyTop + h * Math.min(0.85, dm.mid + 0.3), r * 0.9, mix(C, WHITE, 0.7), 0.35);
+
+    // The window reflected in the glass
+    const ww = r * 0.46, wh = r * 0.52;
+    const wx0 = cx - r * 0.66, wy0 = bodyTop + h * dm.hl;
+    if (s >= 10) {
+      c.fillStyle = 'rgba(255,255,255,0.55)';
+      roundRect(c, wx0, wy0, ww, wh, ww * 0.25);
+      c.fill();
+      c.strokeStyle = rgba(C, 0.55);
+      c.lineWidth = Math.max(0.6, ww * 0.1);
+      c.beginPath();
+      c.moveTo(wx0 + ww / 2, wy0); c.lineTo(wx0 + ww / 2, wy0 + wh);
+      c.moveTo(wx0, wy0 + wh / 2); c.lineTo(wx0 + ww, wy0 + wh / 2);
+      c.stroke();
+    }
+    c.fillStyle = 'rgba(255,255,255,0.92)';
+    c.beginPath();
+    c.ellipse(wx0 + ww * 0.25, wy0 + wh * 1.3, Math.max(0.6, r * 0.07), Math.max(0.4, r * 0.045), -0.6, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+
+    // Edge
+    bodyPath(c, shape, cx, bodyTop, w, h);
+    c.strokeStyle = rgba(mix(C, BLACK, 0.6), 0.35);
+    c.lineWidth = Math.max(0.5, s * 0.012);
+    c.stroke();
+
+    // Metal cap
+    const capW = Math.max(3, shape === 'round' || shape === 'oval' ? w * 0.3 : w * 0.28);
+    const capX = cx - capW / 2, capY = lh;
+    const cg = c.createLinearGradient(capX, 0, capX + capW, 0);
+    cg.addColorStop(0, '#7c5e22'); cg.addColorStop(0.35, '#f3dd96'); cg.addColorStop(0.6, '#c9a24e'); cg.addColorStop(1, '#6e521c');
+    c.fillStyle = cg;
+    roundRect(c, capX, capY, capW, ch, Math.min(capW, ch) * 0.25);
+    c.fill();
+    if (s > 18) {
+      c.strokeStyle = 'rgba(90,64,20,0.45)';
+      c.lineWidth = Math.max(0.4, s * 0.008);
+      for (let i = 1; i < 5; i++) {
+        const x = capX + (capW * i) / 5;
+        c.beginPath(); c.moveTo(x, capY + ch * 0.2); c.lineTo(x, capY + ch * 0.95); c.stroke();
+      }
+    }
+    // Wire hook loop
+    c.strokeStyle = '#a98a46';
+    c.lineWidth = Math.max(0.6, s * 0.02);
+    c.beginPath();
+    c.ellipse(cx, lh * 0.55, Math.max(1.2, s * 0.05), lh * 0.42, 0, 0, Math.PI * 2);
+    c.stroke();
+
+    return {
+      cvs, sw, sh, w, h, bodyTop, lh, ch,
+      capBottom: lh + ch,
+      loopTop: lh * 0.12,
+      centerY: bodyTop + h * dm.mid
+    };
+  }
+
+  const shadowSprite = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(40,52,66,1)');
+    g.addColorStop(0.5, 'rgba(40,52,66,0.5)');
+    g.addColorStop(1, 'rgba(40,52,66,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    return c;
+  })();
+
+  /* ---------- Layout ---------- */
+  let W = 0, H = 0;
+  let rows = [], baubles = [], xmas = false;
+  let openB = null;
+  let builtKey = '';
+
+  function makeRow(y0, swags, xL, xR, sagMax) {
+    const sw = (xR - xL) / swags;
+    return { y0, xL, xR, swags, sw, sag: Math.min(sagMax, sw * 0.16) };
+  }
+  function threadY(row, x) {
+    const u = (x - row.xL) / row.sw;
+    const i = clamp(Math.floor(u), 0, row.swags - 1);
+    const f = clamp(u - i, 0, 1);
+    return row.y0 + 4 * row.sag * f * (1 - f);
+  }
+
+  function makeBauble(o) {
+    const rnd = o.rnd || mulberry32(seedFor(o.date));
+    let shape, color, deco;
+    if (o.forced) {
+      shape = o.forced.shape; color = o.forced.color; deco = o.forced.deco;
+    } else {
+      const r1 = rnd();
+      shape = o.small ? (r1 < 0.7 ? 'round' : 'oval')
+        : r1 < 0.44 ? 'round' : r1 < 0.64 ? 'tear' : r1 < 0.84 ? 'oval' : 'finial';
+      color = JEWELS[Math.floor(rnd() * JEWELS.length)];
+      const r3 = rnd();
+      deco = r3 < 0.35 ? 'none' : r3 < 0.6 ? 'band' : r3 < 0.8 ? 'stripes' : 'dots';
+    }
+    return {
+      date: o.date, s: o.s, ax: o.ax, ay: o.ay, L: o.L, row: o.row, colIdx: o.colIdx,
+      shape, color, deco, sprite: makeSprite(shape, color, deco, o.s),
+      th: 0, om: 0, op: 0, open: false, held: false, isToday: false, isBig: false, lastRing: 0
+    };
+  }
+
+  function rebuild() {
+    const now = simNow();
+    const st = stateAt(now);
+    xmas = st.isXmas;
+    baubles = [];
+    rows = [];
+    openB = null;
+    hideCard();
+    builtKey = `${dayKey(now)}|${xmas}|${W}x${H}`;
+    if (W < 10 || H < 10) return;
+
+    const marginX = Math.max(16, W * 0.04);
+    const topPad = Math.max(10, H * 0.03);
+    const Ha = H - topPad - 8;
+    const usableW = W - marginX * 2;
+    const xL = Math.max(6, marginX * 0.35), xR = W - xL;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (xmas) {
+      [3, 4, 3].forEach((n, r) => rows.push(makeRow(topPad + r * Ha * 0.11, n, xL, xR, Ha * 0.05)));
+      const S = Math.min(Ha * 0.36, W * 0.42, 200);
+      const ax = W / 2;
+      const b = makeBauble({
+        date: today, s: S, ax, ay: threadY(rows[0], ax), L: Ha * 0.3, row: 0, colIdx: 0,
+        forced: { shape: 'round', color: JEWELS[2], deco: 'band' }
+      });
+      b.isToday = true;
+      b.isBig = true;
+      baubles.push(b);
+    } else {
+      const N = Math.max(1, st.sleeps);
+      const capS = Math.min(120, W * 0.3);
+      let best = null;
+      for (let R = 1; R <= Math.min(N, 30); R++) {
+        const perRow = Math.ceil(N / R);
+        const s = Math.min((usableW / perRow) * 0.8, Ha / ((R - 1) * 2.25 + 3.4), capS);
+        if (!best || s > best.s + 0.01) best = { R, s };
+      }
+      const { R, s } = best;
+      const rowH = R > 1 ? Math.min(s * 2.9, (Ha - 3.4 * s) / (R - 1)) : 0;
+      const base = Math.floor(N / R), extra = N % R;
+      let k = 0;
+      for (let r = 0; r < R; r++) {
+        const n = base + (r < extra ? 1 : 0);
+        const swags = Math.max(1, Math.round(n / 5) + (r % 2 && n > 6 ? 1 : 0));
+        const row = makeRow(topPad + r * rowH, swags, xL, xR, R > 1 ? rowH * 0.3 : s * 0.9);
+        rows.push(row);
+        for (let j = 0; j < n; j++, k++) {
+          const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + k);
+          const rnd = mulberry32(seedFor(date));
+          const ax = marginX + ((j + 0.5) * usableW) / n;
+          const L = s * (0.22 + [0, 0.42, 0.18, 0.6][j % 4] + rnd() * 0.06);
+          const b = makeBauble({
+            date, rnd, ax, ay: threadY(row, ax), L, row: r, colIdx: j,
+            s: k === 0 ? s * 1.12 : s * (0.86 + rnd() * 0.22),
+            small: s < 12
+          });
+          b.isToday = k === 0;
+          baubles.push(b);
+        }
+      }
+    }
+
+    if (!reduce) {
+      for (const b of baubles) {
+        b.th = (Math.random() - 0.5) * 0.12;
+        b.om = (Math.random() - 0.5) * 0.8;
+      }
+    }
+  }
+
+  function resize() {
+    const r = wrap.getBoundingClientRect();
+    W = Math.round(r.width);
+    H = Math.round(r.height);
+    cv.width = Math.max(1, Math.round(W * DPR));
+    cv.height = Math.max(1, Math.round(H * DPR));
+    rebuild();
+  }
+
+  /* ---------- Sound ---------- */
+  let actx = null, master = null, soundOn = true;
+  function ensureAudio() {
+    if (!actx) {
+      try {
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+        master = actx.createGain();
+        master.gain.value = 0.9;
+        master.connect(actx.destination);
+        // a short glassy echo
+        const delay = actx.createDelay(1);
+        delay.delayTime.value = 0.23;
+        const fb = actx.createGain(); fb.gain.value = 0.28;
+        const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+        const wet = actx.createGain(); wet.gain.value = 0.35;
+        master.connect(delay); delay.connect(lp); lp.connect(fb); fb.connect(delay); lp.connect(wet); wet.connect(actx.destination);
+      } catch (_) { actx = null; }
+    }
+    if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+  }
+  function chime(freq, vel = 1, when = 0) {
+    if (!soundOn) return;
+    ensureAudio();
+    if (!actx) return;
+    const t = actx.currentTime + 0.01 + when;
+    const out = actx.createGain();
+    out.gain.value = 0.2 * vel;
+    out.connect(master);
+    const partials = [[1, 1, 1.8], [2.76, 0.42, 0.9], [5.4, 0.22, 0.45], [8.93, 0.1, 0.25]];
+    for (const [ratio, amp, dec] of partials) {
+      const f = freq * ratio;
+      if (f > 16000) continue;
+      const o = actx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = f;
+      const g = actx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(amp, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+      o.connect(g); g.connect(out);
+      o.start(t); o.stop(t + dec + 0.05);
+    }
+  }
+  const PENTA = [0, 2, 4, 7, 9];
+  function freqFor(b) {
+    if (b.isBig) return 392;
+    const idx = b.colIdx + (b.row % 3) * 2;
+    let f = 587.33 * Math.pow(2, (PENTA[idx % 5] + 12 * Math.floor(idx / 5)) / 12);
+    if (b.s > 70) f /= 2;
+    while (f > 2350) f /= 2;
+    return f;
+  }
+
+  /* ---------- Sparkles ---------- */
+  const parts = [];
+  function sparkle(x, y, n, spread) {
+    if (reduce) return;
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, Math.PI * 2), v = rand(0.3, 1) * spread;
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - spread * 0.4, life: 1, decay: rand(0.7, 1.3), r: rand(1.5, 3.4), gold: Math.random() < 0.6 });
+    }
+  }
+
+  /* ---------- Interaction ---------- */
+  function bodyCenter(b) {
+    const Le = b.L + b.sprite.centerY;
+    return { x: b.ax + Le * Math.sin(b.th), y: b.ay + Le * Math.cos(b.th) };
+  }
+  function hit(b, px, py) {
+    const dx = px - b.ax, dy = py - b.ay;
+    const c = Math.cos(b.th), s = Math.sin(b.th);
+    const lx = dx * c - dy * s;
+    const ly = dx * s + dy * c;
+    const sp = b.sprite;
+    const top = b.L + sp.lh;
+    const bottom = b.L + sp.bodyTop + sp.h;
+    const hw = Math.max(sp.w / 2, 8);
+    return ly >= top - 3 && ly <= bottom + 3 && Math.abs(lx) <= hw + 2;
+  }
+  function pick(x, y) {
+    for (let i = baubles.length - 1; i >= 0; i--) if (hit(baubles[i], x, y)) return baubles[i];
+    return null;
+  }
+  function rel(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  let press = null, lastX = null, lastY = null, hovered = null;
+
+  function brush(x, y) {
+    if (lastX === null) return;
+    const dx = x - lastX;
+    if (Math.abs(dx) < 0.5) return;
+    for (const b of baubles) {
+      if (b.held || !hit(b, x, y)) continue;
+      const Le = b.L + b.sprite.centerY;
+      b.om = clamp(b.om + clamp((dx / Le) * 2.2, -3, 3), -7, 7);
+    }
+  }
+
+  function tipText(b) {
+    const d = b.date;
+    if (b.isBig) return 'Christmas Day. Tap to open it.';
+    if (b.isToday) return `${offset ? '' : 'Today, '}${fmt(d)}. Tap to open it.`;
+    if (d.getMonth() === 11 && d.getDate() === 24) return `${fmt(d)}, Christmas Eve`;
+    return fmt(d);
+  }
+
+  function updateTip(x, y, type) {
+    const b = type === 'mouse' ? pick(x, y) : null;
+    hovered = b;
+    cv.style.cursor = press && press.drag ? 'grabbing' : b ? 'pointer' : 'default';
+    if (!b) { tip.hidden = true; return; }
+    tip.textContent = tipText(b);
+    tip.hidden = false;
+    const tx = clamp(x, 80, W - 80);
+    tip.style.left = `${tx}px`;
+    tip.style.top = `${y}px`;
+  }
+
+  cv.addEventListener('pointerdown', (e) => {
+    const { x, y } = rel(e);
+    const b = pick(x, y);
+    press = { pid: e.pointerId, b, x0: x, y0: y, drag: false, lastT: performance.now() };
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    lastX = x; lastY = y;
+    e.preventDefault();
+  });
+
+  cv.addEventListener('pointermove', (e) => {
+    const { x, y } = rel(e);
+    if (press && press.pid === e.pointerId && press.b) {
+      const moved = Math.hypot(x - press.x0, y - press.y0);
+      if (press.drag || moved > 6) {
+        press.drag = true;
+        const b = press.b;
+        const th = clamp(Math.atan2(x - b.ax, y - b.ay), -1.25, 1.25);
+        const t = performance.now();
+        const dt = Math.max(0.008, (t - press.lastT) / 1000);
+        b.om = clamp(((th - b.th) / dt) * 0.6, -9, 9);
+        b.th = th;
+        b.held = true;
+        press.lastT = t;
+        tip.hidden = true;
+        cv.style.cursor = 'grabbing';
+      }
+    } else {
+      brush(x, y);
+      if (!press) updateTip(x, y, e.pointerType);
+    }
+    lastX = x; lastY = y;
+  });
+
+  function endPress(e, cancelled) {
+    if (!press || press.pid !== e.pointerId) return;
+    const b = press.b;
+    if (b) {
+      b.held = false;
+      if (!press.drag && !cancelled) tap(b);
+    }
+    press = null;
+    cv.style.cursor = 'default';
+  }
+  cv.addEventListener('pointerup', (e) => endPress(e, false));
+  cv.addEventListener('pointercancel', (e) => endPress(e, true));
+  cv.addEventListener('pointerleave', () => { if (!press) { tip.hidden = true; lastX = lastY = null; hovered = null; } });
+
+  function ring(b, vel = 0.9) {
+    chime(freqFor(b), vel);
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    b.om = clamp(b.om + dir * 1.8, -7, 7);
+    for (const n of baubles) {
+      if (n !== b && n.row === b.row && Math.abs(n.colIdx - b.colIdx) === 1) n.om += dir * 0.5;
+    }
+    const c = bodyCenter(b);
+    sparkle(c.x, c.y, 6, Math.max(20, b.s * 0.9));
+  }
+
+  function tap(b) {
+    if (b.isToday) {
+      toggleOpen(b);
+    } else {
+      ring(b);
+    }
+  }
+
+  let openedByKeyboard = false;
+  function toggleOpen(b, viaKeyboard = false) {
+    if (openB === b && b.open) { closeOpen(); return; }
+    if (openB && openB !== b) closeOpen();
+    openB = b;
+    b.open = true;
+    openedByKeyboard = viaKeyboard;
+    ring(b, 0.7);
+    const f = freqFor(b);
+    chime(f * 1.25, 0.6, 0.09);
+    chime(f * 1.5, 0.55, 0.18);
+    chime(f * 2, 0.5, 0.29);
+    const c = bodyCenter(b);
+    sparkle(c.x, c.y, b.isBig ? 40 : 22, Math.max(40, b.s * 1.2));
+    if (!b.isBig) showCard(b);
+    openBtn.textContent = b.isBig ? 'Close the last bauble' : "Close today's bauble";
+  }
+
+  function closeOpen() {
+    if (openB) openB.open = false;
+    openB = null;
+    hideCard();
+    openBtn.textContent = xmas ? 'Open the last bauble' : "Open today's bauble";
+    if (openedByKeyboard) { openedByKeyboard = false; openBtn.focus(); }
+  }
+
+  function showCard(b) {
+    const [title, body] = activityFor(b.date);
+    cardDate.textContent = `${offset ? '' : 'Today, '}${fmt(b.date)}`;
+    cardTitle.textContent = title;
+    cardBody.textContent = body;
+    card.hidden = false;
+    const cw = card.offsetWidth, chh = card.offsetHeight;
+    const c = bodyCenter(b);
+    const half = b.sprite.h * 0.6;
+    let left = clamp(c.x - cw / 2, 12, W - cw - 12);
+    let top = c.y + half + 14;
+    if (top + chh > H - 8) top = c.y - half - chh - 14;
+    top = clamp(top, 8, Math.max(8, H - chh - 8));
+    card.style.left = `${left}px`;
+    card.style.top = `${top}px`;
+    if (openedByKeyboard) cardClose.focus();
+  }
+  function hideCard() { card.hidden = true; }
+
+  cardClose.addEventListener('click', () => closeOpen());
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openB) closeOpen(); });
+
+  openBtn.addEventListener('click', () => {
+    const b = baubles.find((x) => x.isToday);
+    if (!b) return;
+    if (b.open) closeOpen();
+    else toggleOpen(b, true);
+  });
+
+  soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    soundBtn.setAttribute('aria-pressed', String(soundOn));
+    soundBtn.textContent = soundOn ? 'Sound on' : 'Sound off';
+    if (soundOn) chime(880, 0.5);
+  });
+
+  /* ---------- Preview a day ---------- */
+  let realKey = -1;
+  function setupSlider() {
+    const st = stateAt(new Date());
+    const max = st.isXmas ? 0 : st.sleeps;
+    slider.max = String(max);
+    if (offset > max) offset = max;
+    slider.value = String(offset);
+    slider.disabled = max === 0;
+  }
+  function updateDayOut() {
+    const d = simNow();
+    const st = stateAt(d);
+    let txt;
+    if (st.isXmas) txt = `Christmas Day, ${fmt(d)}`;
+    else if (!offset) txt = `Today, ${fmt(d)}`;
+    else txt = fmt(d);
+    dayOut.textContent = txt;
+    slider.setAttribute('aria-valuetext', txt);
+    backBtn.disabled = offset === 0;
+  }
+  function onOffsetChange() {
+    closeOpen();
+    rebuild();
+    updateDayOut();
+    lastSec = -1;
+    tick(true);
+  }
+  slider.addEventListener('input', () => { offset = Number(slider.value) || 0; onOffsetChange(); });
+  backBtn.addEventListener('click', () => { offset = 0; slider.value = '0'; onOffsetChange(); });
+
+  /* ---------- Text ---------- */
+  let lastSec = -1, lastMin = '';
+  function tick(force) {
+    const now = simNow();
+    const sec = Math.ceil(now.getTime() / 1000);   // the countdown changes exactly when this does
+    if (!force && sec === lastSec) return;
+    lastSec = sec;
+
+    const rk = dayKey(new Date());
+    if (rk !== realKey) { realKey = rk; setupSlider(); updateDayOut(); }
+    const st = stateAt(now);
+    if (`${dayKey(now)}|${st.isXmas}|${W}x${H}` !== builtKey) rebuild();
+
+    if (st.isXmas) {
+      dNum.textContent = 'Merry Christmas';
+      dNum.classList.add('is-xmas');
+      dUnit.textContent = '';
+      hmsEl.hidden = true;
+      leadEl.textContent = offset ? `Previewing Christmas Day, ${fmtY(now)}.` : `It's Christmas Day, ${fmtY(now)}.`;
+      hintEl.textContent = 'The garland is empty. Tap the last bauble to open it.';
+      if (!openB) openBtn.textContent = 'Open the last bauble';
+    } else {
+      dNum.classList.remove('is-xmas');
+      dNum.textContent = String(st.d);
+      dUnit.textContent = plural(st.d, 'day', 'days');
+      hmsEl.hidden = false;
+      hNum.textContent = pad(st.h); hUnit.textContent = plural(st.h, 'hour', 'hours');
+      mNum.textContent = pad(st.m); mUnit.textContent = plural(st.m, 'minute', 'minutes');
+      sNum.textContent = pad(st.sec); sUnit.textContent = plural(st.sec, 'second', 'seconds');
+      leadEl.textContent = `${st.sleeps} ${plural(st.sleeps, 'sleep', 'sleeps')} until Christmas morning, ${fmtY(st.target)}`;
+      hintEl.textContent = st.sleeps === 1
+        ? 'One bauble left. Tap it to open it.'
+        : 'One bauble for every sleep left. Brush past them to make them swing, tap one to ring it, and open today’s.';
+      if (!openB) openBtn.textContent = "Open today's bauble";
+    }
+
+    const minKey = st.isXmas ? 'x' : `${st.d}:${st.h}:${st.m}`;
+    if (minKey !== lastMin) {
+      lastMin = minKey;
+      timerEl.textContent = st.isXmas
+        ? "It's Christmas Day."
+        : `${st.d} ${plural(st.d, 'day', 'days')}, ${st.h} ${plural(st.h, 'hour', 'hours')} and ${st.m} ${plural(st.m, 'minute', 'minutes')} until Christmas Day.`;
+    }
+  }
+
+  /* ---------- Physics and drawing ---------- */
+  function step(dt, t) {
+    const G = 2400;
+    for (const b of baubles) {
+      if (b.held) continue;
+      const Le = b.L + b.sprite.centerY;
+      let a = -(G / Le) * Math.sin(b.th) - 1.1 * b.om;
+      if (!reduce) a += Math.sin(t * 0.6 + b.ax * 0.013 + b.row) * 1.5 * (40 / Le);
+      b.om += a * dt;
+      b.th += b.om * dt;
+      if (b.th > 1.4) { b.th = 1.4; b.om *= -0.3; }
+      if (b.th < -1.4) { b.th = -1.4; b.om *= -0.3; }
+    }
+    for (const b of baubles) {
+      const target = b.open ? 1 : 0;
+      if (reduce) b.op = target;
+      else b.op += (target - b.op) * Math.min(1, dt * 7);
+    }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vy += 40 * dt;
+      p.vx *= 0.98;
+      p.life -= p.decay * dt;
+      if (p.life <= 0) parts.splice(i, 1);
+    }
+  }
+
+  function drawThread(row) {
+    const pts = [];
+    for (let x = row.xL; x <= row.xR + 0.1; x += 6) pts.push([x, threadY(row, x)]);
+    pts.push([row.xR, threadY(row, row.xR)]);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    // soft shadow on the wall
+    ctx.strokeStyle = 'rgba(40,52,66,0.12)';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x + 3, y + 6) : ctx.moveTo(x + 3, y + 6)));
+    ctx.stroke();
+    // gold thread
+    ctx.strokeStyle = '#a8843a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(246,226,160,0.8)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 0.4) : ctx.moveTo(x, y - 0.4)));
+    ctx.stroke();
+    // brass pins
+    for (let i = 0; i <= row.swags; i++) {
+      const x = row.xL + i * row.sw, y = row.y0;
+      ctx.fillStyle = 'rgba(40,52,66,0.18)';
+      ctx.beginPath(); ctx.arc(x + 1.5, y + 3, 3.4, 0, Math.PI * 2); ctx.fill();
+      const g = ctx.createRadialGradient(x - 1, y - 1, 0.5, x, y, 3.6);
+      g.addColorStop(0, '#fbeab4'); g.addColorStop(0.6, '#c49a45'); g.addColorStop(1, '#7a5a1e');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawBow(b, sp) {
+    const bw = Math.max(4, b.s * 0.2);
+    const y = b.L + sp.lh + sp.ch * 0.4;
+    const g = ctx.createLinearGradient(-bw, y - bw, bw, y + bw);
+    g.addColorStop(0, '#c41a3d'); g.addColorStop(1, '#6a0a1e');
+    ctx.fillStyle = g;
+    // tails
+    ctx.beginPath();
+    ctx.moveTo(-bw * 0.12, y); ctx.lineTo(-bw * 0.62, y + bw * 1.15); ctx.lineTo(-bw * 0.38, y + bw * 1.0); ctx.lineTo(-bw * 0.22, y + bw * 1.2); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bw * 0.12, y); ctx.lineTo(bw * 0.62, y + bw * 1.15); ctx.lineTo(bw * 0.38, y + bw * 1.0); ctx.lineTo(bw * 0.22, y + bw * 1.2); ctx.closePath(); ctx.fill();
+    // loops
+    ctx.beginPath(); ctx.ellipse(-bw * 0.55, y - bw * 0.1, bw * 0.55, bw * 0.3, -0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bw * 0.55, y - bw * 0.1, bw * 0.55, bw * 0.3, 0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,170,185,0.35)';
+    ctx.beginPath(); ctx.ellipse(-bw * 0.62, y - bw * 0.22, bw * 0.25, bw * 0.09, -0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bw * 0.48, y - bw * 0.22, bw * 0.25, bw * 0.09, 0.45, 0, Math.PI * 2); ctx.fill();
+    // knot
+    ctx.fillStyle = '#8f1230';
+    ctx.beginPath(); ctx.arc(0, y - bw * 0.05, bw * 0.22, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawOpen(b, sp, p) {
+    const cvs = sp.cvs;
+    const yS = sp.capBottom;
+    const srcY = Math.round(yS * DPR);
+    const srcH = cvs.height - srcY;
+    const halfPx = Math.floor(cvs.width / 2);
+    const phi = p * (b.isBig ? 0.95 : 0.55);
+    const cy = b.L + sp.centerY;
+
+    // light inside
+    const R = Math.max(sp.w, sp.h * 0.7) * (0.6 + p * 0.5);
+    const g = ctx.createRadialGradient(0, cy, 0, 0, cy, R);
+    g.addColorStop(0, `rgba(255,238,180,${0.95 * p})`);
+    g.addColorStop(0.45, `rgba(255,214,130,${0.45 * p})`);
+    g.addColorStop(1, 'rgba(255,214,130,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-R, cy - R, R * 2, R * 2);
+
+    const edgeTop = sp.bodyTop - yS, edgeBot = sp.bodyTop + sp.h - yS;
+    // left half
+    ctx.save();
+    ctx.translate(0, b.L + yS);
+    ctx.rotate(phi);
+    ctx.drawImage(cvs, 0, srcY, halfPx, srcH, -sp.sw / 2, 0, halfPx / DPR, srcH / DPR);
+    ctx.strokeStyle = `rgba(255,236,190,${0.85 * p})`;
+    ctx.lineWidth = Math.max(1, b.s * 0.025);
+    ctx.beginPath(); ctx.moveTo(0, edgeTop); ctx.lineTo(0, edgeBot); ctx.stroke();
+    ctx.restore();
+    // right half
+    ctx.save();
+    ctx.translate(0, b.L + yS);
+    ctx.rotate(-phi);
+    ctx.drawImage(cvs, halfPx, srcY, cvs.width - halfPx, srcH, -sp.sw / 2 + halfPx / DPR, 0, (cvs.width - halfPx) / DPR, srcH / DPR);
+    ctx.beginPath(); ctx.moveTo(0, edgeTop); ctx.lineTo(0, edgeBot); ctx.stroke();
+    ctx.restore();
+    // cap and hook stay put
+    ctx.drawImage(cvs, 0, 0, cvs.width, srcY, -sp.sw / 2, b.L, cvs.width / DPR, srcY / DPR);
+  }
+
+  function drawBauble(b, t) {
+    const sp = b.sprite;
+    ctx.save();
+    ctx.translate(b.ax, b.ay);
+    ctx.rotate(-b.th);
+    ctx.strokeStyle = 'rgba(150,118,56,0.9)';
+    ctx.lineWidth = Math.max(0.6, b.s * 0.012);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, b.L + sp.loopTop); ctx.stroke();
+
+    if (b.isToday) {
+      const pulse = reduce ? 0.3 : 0.26 + 0.1 * Math.sin(t * 2.2);
+      const cy = b.L + sp.centerY;
+      const R = Math.max(sp.w, sp.h * 0.7) * 0.95;
+      const g = ctx.createRadialGradient(0, cy, R * 0.3, 0, cy, R * 1.25);
+      g.addColorStop(0, `rgba(255,212,120,${pulse})`);
+      g.addColorStop(1, 'rgba(255,212,120,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(-R * 1.3, cy - R * 1.3, R * 2.6, R * 2.6);
+    }
+
+    if (b.op > 0.01) drawOpen(b, sp, b.op);
+    else ctx.drawImage(sp.cvs, -sp.sw / 2, b.L, sp.sw, sp.sh);
+
+    if (b.isToday) drawBow(b, sp);
+    ctx.restore();
+
+    if (b.isBig && b.op > 0.05) {
+      const c = bodyCenter(b);
+      const fs = Math.max(22, b.s * 0.26);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, b.op * 1.2);
+      ctx.fillStyle = '#1e2b36';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `italic 500 ${fs}px "Bodoni Moda", "Bodoni 72", Didot, Georgia, serif`;
+      ctx.shadowColor = 'rgba(255,250,236,0.98)';
+      ctx.shadowBlur = fs * 0.5;
+      const rise = (1 - b.op) * 12;
+      for (let k = 0; k < 2; k++) {
+        ctx.fillText('Merry', c.x, c.y - fs * 0.55 + rise);
+        ctx.fillText('Christmas', c.x, c.y + fs * 0.55 + rise);
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawParticles() {
+    for (const p of parts) {
+      const a = Math.max(0, p.life);
+      ctx.strokeStyle = p.gold ? `rgba(214,168,62,${a})` : `rgba(255,255,255,${a})`;
+      ctx.lineWidth = 1.1;
+      const r = p.r * (0.6 + a * 0.6);
+      ctx.beginPath();
+      ctx.moveTo(p.x - r, p.y); ctx.lineTo(p.x + r, p.y);
+      ctx.moveTo(p.x, p.y - r); ctx.lineTo(p.x, p.y + r);
+      ctx.stroke();
+    }
+  }
+
+  function draw(t) {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    // shadows cast by the morning light, down and to the right
+    for (const b of baubles) {
+      const c = bodyCenter(b);
+      const sw = b.sprite.w * 1.3, shh = b.sprite.h * 1.2;
+      ctx.globalAlpha = 0.15;
+      ctx.drawImage(shadowSprite, c.x + b.s * 0.28 - sw / 2, c.y + b.s * 0.5 - shh / 2, sw, shh);
+    }
+    ctx.globalAlpha = 1;
+    for (const r of rows) drawThread(r);
+    for (const b of baubles) drawBauble(b, t);
+    drawParticles();
+  }
+
+  let lastT = performance.now();
+  function loop(now) {
+    const dt = Math.min(1 / 30, (now - lastT) / 1000);
+    lastT = now;
+    const t = now / 1000;
+    tick(false);
+    step(dt / 2, t);
+    step(dt / 2, t);
+    if (W > 0) draw(t);
+    requestAnimationFrame(loop);
+  }
+
+  if (mq.addEventListener) mq.addEventListener('change', (e) => { reduce = e.matches; });
+  if ('ResizeObserver' in window) new ResizeObserver(() => resize()).observe(wrap);
+  else window.addEventListener('resize', resize);
+
+  resize();
+  setupSlider();
+  updateDayOut();
+  tick(true);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

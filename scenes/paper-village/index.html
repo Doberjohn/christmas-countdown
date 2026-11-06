@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper Village Countdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Karla:wght@400;500;700&display=swap">
+<style>
+:root {
+  /* Layout: a full-screen cut-paper diorama of a village at dusk in eight parallax layers; a letterpress card is tucked into the foreground snow with the countdown and the day preview. */
+  --dusk: #3e3252;
+  --ink: #46304f;
+  --ink-soft: #6a5672;
+  --cotton: #f8f5f1;
+  --kraft: #b4875a;
+  --glow: #ffc56b;
+  --font-display: "Alfa Slab One", "Rockwell", "Roboto Slab", Georgia, serif;
+  --font-body: "Karla", "Helvetica Neue", Arial, system-ui, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--dusk);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- Diorama ---------- */
+.scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--dusk);
+  touch-action: none;
+}
+.layer {
+  position: absolute;
+  top: -16px; bottom: -16px; left: -40px; right: -40px;
+  will-change: transform;
+  pointer-events: none;
+}
+.layer svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tw { animation: twinkle 3.8s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* windows */
+.pane-dark { fill: #33283f; }
+.pane-lit { fill: url(#litGrad); opacity: 0; transition: opacity 0.9s ease; }
+.halo { fill: url(#haloGrad); opacity: 0; transition: opacity 0.9s ease; transform-box: fill-box; transform-origin: center; }
+.mull { opacity: 0; transition: opacity 0.6s ease; }
+.no {
+  fill: #d9cde2;
+  font-family: var(--font-body);
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  transition: opacity 0.5s ease;
+}
+.hit { fill: none; }
+.ring { fill: none; stroke: #ffffff; stroke-width: 2.5; opacity: 0; }
+.flick { animation: flick 5.6s ease-in-out infinite; }
+@keyframes flick { 0%, 100% { opacity: 1; } 35% { opacity: 0.84; } 55% { opacity: 0.97; } 75% { opacity: 0.88; } }
+
+.win.lit .pane-lit, .plain.lit .pane-lit { opacity: 1; }
+.win.lit .halo, .plain.lit .halo { opacity: 0.9; }
+.win.lit .mull, .plain.lit .mull { opacity: 1; }
+.win.lit .no { opacity: 0; }
+.win.lit .hit { pointer-events: all; cursor: pointer; }
+.win:focus { outline: none; }
+.win:focus-visible .ring { opacity: 1; }
+.win.tonight .halo { animation: pulse 2.4s ease-in-out 4; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.45); } }
+
+.slit { fill: #ffc66e; transition: opacity 0.6s ease; }
+.slitglow { fill: url(#haloGrad); opacity: 0.32; transition: opacity 0.6s ease; }
+.sh { transform-box: fill-box; transition: transform 1.3s cubic-bezier(.3,.7,.2,1); }
+.sh.l { transform-origin: left center; }
+.sh.r { transform-origin: right center; }
+.allopen .shut .pane-lit { opacity: 1; }
+.allopen .shut .halo { opacity: 0.9; }
+.allopen .shut .mull { opacity: 1; }
+.allopen .shut .slit, .allopen .shut .slitglow { opacity: 0; }
+.allopen .shut .sh { transform: scaleX(0.16); }
+
+.lampglow { fill: url(#haloGrad); opacity: 0.85; }
+
+.xstar-inner {
+  transform: translateY(var(--rise));
+  opacity: 0;
+  transition: transform 2.8s cubic-bezier(.2,.7,.15,1), opacity 1.2s ease;
+}
+.xmas .xstar-inner { transform: none; opacity: 1; }
+
+/* ---------- Letterpress card ---------- */
+.card-wrap {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: clamp(12px, 2.6vh, 28px);
+  transform: translateX(-50%);
+  width: min(860px, calc(100vw - 24px));
+}
+.backsheet {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background-color: var(--kraft);
+  background-image: var(--grain, none);
+  transform: translate(7px, 7px) rotate(-1.1deg);
+  box-shadow: 0 10px 26px rgba(32, 16, 44, 0.4);
+}
+.card {
+  position: relative;
+  border-radius: 3px;
+  background-color: var(--cotton);
+  background-image: var(--grain, none);
+  padding: clamp(14px, 2.2vh, 22px) clamp(16px, 3vw, 30px) clamp(14px, 2vh, 20px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 12px 30px rgba(32, 16, 44, 0.32);
+}
+
+.count {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: end;
+}
+.unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0.3rem;
+  border-left: 1px solid rgba(70, 48, 79, 0.16);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.85);
+}
+.unit:first-child { border-left: 0; box-shadow: none; }
+.num, .xmas-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 -1px 0 rgba(40, 18, 52, 0.22);
+}
+.num { font-size: clamp(2rem, 1.1rem + 4.2vw, 4.3rem); }
+.lab { margin-top: 0.3rem; font-size: 0.86rem; color: var(--ink-soft); }
+.xmas-title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(2.1rem, 1.2rem + 4.6vw, 4.6rem);
+  text-wrap: balance;
+}
+
+.foot {
+  display: grid;
+  grid-template-columns: 1fr minmax(290px, 340px);
+  gap: 12px 30px;
+  margin-top: clamp(10px, 1.8vh, 16px);
+  padding-top: clamp(10px, 1.8vh, 14px);
+  border-top: 1px solid rgba(70, 48, 79, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+.sleeps {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(0.98rem, 0.92rem + 0.3vw, 1.1rem);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.status {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  min-height: 2.9em;
+}
+
+.preview { display: grid; gap: 8px; align-self: start; }
+.preview-top, .preview-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.preview label { font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+.preview output { font-size: 0.88rem; color: var(--ink-soft); text-align: right; }
+.preview input[type="range"] { flex: 1; min-width: 0; margin: 0; accent-color: var(--ink); }
+.today { flex: none; }
+.today {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid rgba(70, 48, 79, 0.4);
+  border-radius: 3px;
+  padding: 0.38em 0.75em;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.today:hover:not(:disabled) { background: rgba(70, 48, 79, 0.07); }
+.today:disabled { opacity: 0.45; cursor: default; }
+.today:focus-visible, .preview input:focus-visible, .peek-close:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+[hidden] { display: none !important; }
+
+/* ---------- Peek inside a window ---------- */
+.peek {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(30, 18, 40, 0.58);
+}
+.peek-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 22px;
+  align-items: center;
+  width: min(540px, 100%);
+  padding: 22px;
+  border-radius: 3px;
+  background-color: var(--cotton);
+  background-image: var(--grain, none);
+  box-shadow: 0 20px 50px rgba(20, 8, 30, 0.5);
+  animation: peekIn 0.35s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes peekIn { from { transform: translateY(10px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.peek-art { width: 190px; height: auto; display: block; filter: drop-shadow(0 4px 8px rgba(40, 18, 52, 0.35)); }
+.peek-copy h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1.05;
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 -1px 0 rgba(40, 18, 52, 0.22);
+}
+.peek-copy p { margin: 0.55rem 0 0; line-height: 1.45; }
+.peek-meta { color: var(--ink-soft); font-size: 0.9rem; }
+.peek-close { margin-top: 1rem; }
+
+@media (max-width: 640px) {
+  .foot { grid-template-columns: 1fr; }
+  .status { min-height: 0; }
+  .lab { font-size: 0.78rem; }
+  .peek-card { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .peek-art { width: 160px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw, .flick, .win.tonight .halo, .peek-card { animation: none; }
+  .pane-lit, .halo, .mull, .no, .sh, .slit, .slitglow, .xstar-inner { transition: none; }
+}
+</style>
+</head>
+<body>
+<h1 class="sr-only">Paper Village Countdown</h1>
+<p class="sr-only" id="timer" role="timer" aria-live="off"></p>
+
+<svg class="defs" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="paper" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.2  0 0 0 0 0.12  0 0 0 0 0.24  0.7 0 0 0 -0.36" result="specks"/>
+      <feComposite in="specks" in2="SourceGraphic" operator="in" result="specksIn"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.01 0.32" numOctaves="2" seed="9" result="fib"/>
+      <feColorMatrix in="fib" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.5 0 0 0 -0.29" result="fibres"/>
+      <feComposite in="fibres" in2="SourceGraphic" operator="in" result="fibresIn"/>
+      <feMerge>
+        <feMergeNode in="SourceGraphic"/>
+        <feMergeNode in="fibresIn"/>
+        <feMergeNode in="specksIn"/>
+      </feMerge>
+    </filter>
+    <radialGradient id="litGrad" cx="50%" cy="45%" r="68%">
+      <stop offset="0" stop-color="#fff4c8"/>
+      <stop offset="0.55" stop-color="#ffc96e"/>
+      <stop offset="1" stop-color="#ef944a"/>
+    </radialGradient>
+    <radialGradient id="haloGrad">
+      <stop offset="0" stop-color="#ffd27e" stop-opacity="0.85"/>
+      <stop offset="0.4" stop-color="#ffb862" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#ff9a4a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="starGlow">
+      <stop offset="0" stop-color="#fff2c0" stop-opacity="0.9"/>
+      <stop offset="0.35" stop-color="#ffd37a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffb862" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="peekGlow" cx="50%" cy="55%" r="72%">
+      <stop offset="0" stop-color="#ffe8aa"/>
+      <stop offset="0.6" stop-color="#ffbf69"/>
+      <stop offset="1" stop-color="#e88a45"/>
+    </radialGradient>
+  </defs>
+</svg>
+
+<div class="scene" id="scene" role="group" aria-label="A paper-cut village at dusk. Lit windows can be opened to look inside."></div>
+
+<div class="card-wrap" id="cardWrap">
+  <div class="backsheet" aria-hidden="true"></div>
+  <section class="card" aria-label="Countdown to Christmas">
+    <div class="count" id="count">
+      <div class="unit"><span class="num" id="nd">0</span><span class="lab" id="ld">days</span></div>
+      <div class="unit"><span class="num" id="nh">00</span><span class="lab" id="lh">hours</span></div>
+      <div class="unit"><span class="num" id="nm">00</span><span class="lab" id="lm">minutes</span></div>
+      <div class="unit"><span class="num" id="ns">00</span><span class="lab" id="ls">seconds</span></div>
+    </div>
+    <p class="xmas-title" id="xmasTitle" hidden>Merry Christmas</p>
+    <div class="foot">
+      <div>
+        <p class="sleeps" id="sleeps">Counting the sleeps until Christmas morning</p>
+        <p class="status" id="status"></p>
+      </div>
+      <div class="preview" id="previewRow">
+        <div class="preview-top">
+          <label for="day">Preview a day</label>
+          <output id="dayOut" for="day">Today</output>
+        </div>
+        <div class="preview-bottom">
+          <input type="range" id="day" min="0" max="50" step="1" value="0">
+          <button class="today" id="todayBtn" type="button" disabled>Back to today</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="peek" id="peek" hidden>
+  <div class="peek-card" role="dialog" aria-modal="true" aria-labelledby="peekTitle" aria-describedby="peekText">
+    <svg class="peek-art" id="peekArt" viewBox="0 0 200 240" aria-hidden="true"></svg>
+    <div class="peek-copy">
+      <h2 id="peekTitle">Window 1</h2>
+      <p id="peekText"></p>
+      <p class="peek-meta" id="peekMeta"></p>
+      <button class="today peek-close" id="peekClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const $ = (s) => document.querySelector(s);
+  const scene = $('#scene');
+  const cardWrap = $('#cardWrap');
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let reduce = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', (e) => { reduce = e.matches; });
+
+  /* ---------- Helpers ---------- */
+  const f = (n) => String(Math.round(n * 10) / 10);
+  const P = (pts) => pts.map((p) => f(p[0]) + ',' + f(p[1])).join(' ');
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function mix(a, b, t) {
+    const A = hexRgb(a), B = hexRgb(b);
+    return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  }
+  const rect = (x, y, w, h, fill, extra = '') => `<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" fill="${fill}" ${extra}/>`;
+  const poly = (pts, fill) => `<polygon points="${P(pts)}" fill="${fill}"/>`;
+  const shift = (pts, dy) => pts.map(([x, y]) => [x, y + dy]);
+  function pip(x, y, pg) {
+    let inside = false;
+    for (let i = 0, j = pg.length - 1; i < pg.length; j = i++) {
+      const [xi, yi] = pg[i], [xj, yj] = pg[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  function starPts(cx, cy, R, r, n) {
+    const pts = [];
+    for (let i = 0; i < n * 2; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / n;
+      const rr = i % 2 === 0 ? R : r;
+      pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
+    }
+    return pts;
+  }
+  function wave(y0, amp, step, rnd, W, scale) {
+    const ph1 = rnd() * 6.28, ph2 = rnd() * 6.28;
+    const l1 = Math.max(90, W * 0.16 * scale), l2 = Math.max(30, W * 0.05 * scale);
+    const yAt = (x) => y0 + Math.sin(x / l1 + ph1) * amp + Math.sin(x / l2 + ph2) * amp * 0.35;
+    const pts = [];
+    for (let x = -70; x <= W + 70 + step; x += step) pts.push([x, yAt(x)]);
+    return { pts, yAt };
+  }
+  function fillBelow(pts, H) {
+    let d = `M${f(pts[0][0])},${f(H + 40)} L${f(pts[0][0])},${f(pts[0][1])}`;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      d += ` Q${f(x0)},${f(y0)} ${f((x0 + x1) / 2)},${f((y0 + y1) / 2)}`;
+    }
+    const last = pts[pts.length - 1];
+    d += ` L${f(last[0])},${f(last[1])} L${f(last[0])},${f(H + 40)} Z`;
+    return d;
+  }
+
+  /* paper grain for the card, made once */
+  (function makeGrain() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 160;
+    const x = c.getContext('2d');
+    const id = x.createImageData(160, 160);
+    for (let i = 0; i < id.data.length; i += 4) {
+      const v = Math.random();
+      id.data[i] = 70; id.data[i + 1] = 48; id.data[i + 2] = 79;
+      id.data[i + 3] = v > 0.6 ? (v - 0.6) * 48 : 0;
+    }
+    x.putImageData(id, 0, 0);
+    x.lineCap = 'round';
+    for (let k = 0; k < 46; k++) {
+      x.strokeStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '70,48,79'},${(0.05 + Math.random() * 0.07).toFixed(3)})`;
+      x.lineWidth = 0.6 + Math.random() * 0.6;
+      const sx = Math.random() * 160, sy = Math.random() * 160, a = Math.random() * Math.PI * 2, l = 6 + Math.random() * 14;
+      x.beginPath();
+      x.moveTo(sx, sy);
+      x.quadraticCurveTo(sx + Math.cos(a) * l * 0.5 + 3, sy + Math.sin(a) * l * 0.5 - 2, sx + Math.cos(a) * l, sy + Math.sin(a) * l);
+      x.stroke();
+    }
+    document.documentElement.style.setProperty('--grain', `url(${c.toDataURL()})`);
+  })();
+
+  /* ---------- Palette ---------- */
+  const SNOW = '#f6f2f0';
+  const HAZE = '#9d8fae';
+  const HOUSE = ['#c98d4b', '#a9553f', '#6f8f7d', '#55688a', '#d4c09a', '#b97a86', '#7b5c80', '#8f6f4f'];
+  const ROOF = ['#3d2f45', '#56403a', '#2f3d4a', '#4a3528'];
+
+  /* ---------- Layers ---------- */
+  const LAYER_DEFS = [
+    { key: 'sky', d: 0.04, shadow: 'none' },
+    { key: 'far', d: 0.12, shadow: 'drop-shadow(0 -2px 4px rgba(40,22,52,.30))' },
+    { key: 'mid', d: 0.24, shadow: 'drop-shadow(0 -2px 5px rgba(40,22,52,.32))' },
+    { key: 'star', d: 0.40, shadow: 'none' },
+    { key: 'rowA', d: 0.40, shadow: 'drop-shadow(0 -2px 6px rgba(40,22,52,.34))' },
+    { key: 'trees', d: 0.60, shadow: 'drop-shadow(0 -2px 6px rgba(40,22,52,.34))' },
+    { key: 'rowB', d: 0.80, shadow: 'drop-shadow(0 -3px 8px rgba(40,22,52,.36))' },
+    { key: 'front', d: 1.00, shadow: 'drop-shadow(0 -4px 10px rgba(40,22,52,.38))' }
+  ];
+  const layers = LAYER_DEFS.map((def) => {
+    const el = document.createElement('div');
+    el.className = 'layer';
+    scene.appendChild(el);
+    return { def, el };
+  });
+  const MAXX = 30, MAXY = 12;
+
+  /* ---------- Village geometry ---------- */
+  function generate(W, H, cardTop, portrait, U) {
+    const rnd = mulberry32(122512);
+    const R = (a, b) => a + rnd() * (b - a);
+    const yB = Math.min(H * 0.74, cardTop - (portrait ? 10 : 18));
+    const yA2 = portrait ? yB - U * 1.0 : null;
+    const yA = portrait ? yA2 - U * 0.85 : yB - U * 1.05;
+    const sA = portrait ? 0.66 : 0.72;
+    const margin = Math.max(8, W * 0.015);
+    const horizon = yA - U * (portrait ? 1.6 : 1.45);
+
+    // church
+    const cs = portrait ? 0.8 : 0.78;
+    const naveW = U * cs * 1.45, naveH = U * cs * 1.05, naveRoof = naveW * 0.5;
+    const towerW = U * cs * 0.56, towerH = U * cs * 2.3, spireH = U * cs * 1.15;
+    const cx = W * 0.5 + (portrait ? 0 : R(-0.04, 0.04) * W);
+    const naveX = cx - naveW / 2 + towerW * 0.25;
+    const towerX = naveX - towerW * 0.62;
+    const church = {
+      naveX, naveW, naveH, naveRoof, towerX, towerW, towerH, spireH, base: yA, s: cs,
+      left: towerX - U * 0.05, right: naveX + naveW * 1.05,
+      spireX: towerX + towerW / 2, spireTopY: yA - towerH - spireH
+    };
+
+    const slots = [];
+    const wall = mix('#ece2d2', HAZE, 0.18);
+    // church windows
+    {
+      const aw = U * cs * 0.19, ah = aw * 2.1;
+      for (const u of [0.3, 0.72]) {
+        slots.push({ type: 'arch', x: naveX + naveW * u - aw / 2, y: yA - naveH + naveH * 0.2, w: aw, h: ah, frame: wall, row: 'A' });
+      }
+      const bw = towerW * 0.36, bh = towerW * 0.66;
+      slots.push({ type: 'arch', x: towerX + towerW / 2 - bw / 2, y: yA - towerH + towerW * 0.28, w: bw, h: bh, frame: wall, row: 'A' });
+      const rd = towerW * 0.48;
+      slots.push({ type: 'round', x: towerX + towerW / 2 - rd / 2, y: yA - towerH + towerW * 1.3, w: rd, h: rd, frame: wall, row: 'A', church24: true });
+    }
+
+    function roofPts(h) {
+      const { x, w, top, roofH, eave, roofType } = h;
+      if (roofType === 'step') {
+        const r = roofH / 3.6, i = w * 0.13;
+        const left = [[x, top]];
+        for (let s = 1; s <= 3; s++) { left.push([x + (s - 1) * i, top - s * r]); left.push([x + s * i, top - s * r]); }
+        const pk = top - 3 * r - r * 0.6;
+        const rightSide = left.slice().reverse().map(([px, py]) => [2 * x + w - px, py]);
+        return [...left, [x + 3 * i, pk], [x + w - 3 * i, pk], ...rightSide];
+      }
+      return [[x - eave, top], [x + w / 2, top - roofH], [x + w + eave, top]];
+    }
+
+    function makeHouse(x, w, base, s, o) {
+      const bodyH = U * s * R(o.hMin, o.hMax);
+      const top = base - bodyH;
+      const rr = rnd();
+      const roofType = rr < 0.55 ? 'gable' : rr < 0.8 ? 'steep' : 'step';
+      const roofH = w * (roofType === 'steep' ? R(0.62, 0.78) : roofType === 'step' ? R(0.5, 0.62) : R(0.38, 0.5));
+      const eave = roofType === 'step' ? 0 : w * 0.06;
+      const color = mix(HOUSE[Math.floor(rnd() * HOUSE.length)], HAZE, o.haze);
+      const roofColor = mix(ROOF[Math.floor(rnd() * ROOF.length)], HAZE, o.haze * 0.8);
+      const h = {
+        x, w, base, top, bodyH, roofType, roofH, eave, color, roofColor, s,
+        door: o.door, chimney: roofType !== 'step' && rnd() < 0.45, wreath: rnd() < 0.5, row: o.row
+      };
+      h.roof = roofPts(h);
+      h.poly = [[x, base], [x, top], ...h.roof, [x + w, top], [x + w, base]];
+
+      const ww = U * s * 0.18, wh = ww * 1.3;
+      const cols = w > U * s * 1.12 ? 3 : 2;
+      const colPos = cols === 3 ? [0.2, 0.5, 0.8] : [0.27, 0.73];
+      const y0 = top + bodyH * 0.16;
+      const doorW = U * s * 0.18, doorH = U * s * 0.32, doorX = x + w / 2 - doorW / 2;
+      h.doorW = doorW; h.doorH = doorH;
+      const shutter = mix(color, '#1d1222', 0.35);
+      for (let r = 0; r < o.maxRows; r++) {
+        const y = y0 + r * wh * 1.62;
+        if (y + wh > base - U * s * 0.08) break;
+        for (const cp of colPos) {
+          const wx = x + w * cp - ww / 2;
+          if (h.door && wx < doorX + doorW + 3 && wx + ww > doorX - 3 && y + wh > base - doorH - 4) continue;
+          slots.push({ type: 'rect', x: wx, y, w: ww, h: wh, frame: color, shutter, row: o.row });
+        }
+      }
+      if (roofType !== 'step' && roofH > wh * 1.55 && rnd() < 0.7) {
+        const d = ww * 0.86;
+        slots.push({ type: 'round', x: x + w / 2 - d / 2, y: top - roofH * 0.36 - d / 2, w: d, h: d, frame: color, row: o.row });
+      }
+      return h;
+    }
+
+    function row(x0, x1, base, s, gaps, o) {
+      const segs = [];
+      let cur = x0;
+      for (const [a, b] of gaps.slice().sort((p, q) => p[0] - q[0])) {
+        if (a > cur) segs.push([cur, Math.min(a, x1)]);
+        cur = Math.max(cur, b);
+      }
+      if (cur < x1) segs.push([cur, x1]);
+      const out = [];
+      for (const [sx0, sx1] of segs) {
+        const list = [];
+        let x = 0;
+        while (true) {
+          const w = U * s * R(0.82, 1.22);
+          const gap = list.length ? U * s * R(0.05, 0.28) : 0;
+          if (x + gap + w > sx1 - sx0) break;
+          list.push({ rx: x + gap, w });
+          x += gap + w;
+        }
+        const off = sx0 + (sx1 - sx0 - x) / 2;
+        for (const it of list) out.push(makeHouse(it.rx + off, it.w, base, s, o));
+      }
+      return out;
+    }
+
+    const rowA = row(margin, W - margin, yA, sA, [[church.left - U * 0.08, church.right + U * 0.08]],
+      { door: false, hMin: 0.72, hMax: 1.02, maxRows: 1, haze: 0.34, row: 'A' });
+
+    let rowA2 = [];
+    if (portrait) {
+      rowA2 = row(margin, W - margin, yA2, 0.82, [], { door: true, hMin: 0.8, hMax: 1.08, maxRows: 2, haze: 0.18, row: 'A2' });
+    }
+
+    const squareGap = portrait ? [] : [[cx - U * 0.78, cx + U * 0.78]];
+    const rowB = row(margin + (portrait ? 0 : U * 0.25), W - margin - (portrait ? 0 : U * 0.25), yB, 1, squareGap,
+      { door: true, hMin: portrait ? 0.9 : 0.78, hMax: portrait ? 1.2 : 1.08, maxRows: 2, haze: 0, row: 'B' });
+
+    // trees between rows
+    const midTrees = [];
+    const treeRow = portrait ? rowA2 : rowA;
+    const treeBase = portrait ? yA2 + U * 0.1 : yA + U * 0.14;
+    const treeScale = portrait ? 0.9 : 1;
+    for (let i = 0; i <= treeRow.length; i++) {
+      const left = i === 0 ? -U : treeRow[i - 1].x + treeRow[i - 1].w;
+      const right = i === treeRow.length ? W + U : treeRow[i].x;
+      if (right - left < U * 0.12) continue;
+      if (i !== 0 && i !== treeRow.length && rnd() > 0.65) continue;
+      const tx = i === 0 ? clamp(right - U * 0.22, 4, W) : i === treeRow.length ? clamp(left + U * 0.22, 0, W - 4) : (left + right) / 2;
+      const th = U * treeScale * R(0.55, 0.9);
+      midTrees.push({ x: tx, base: treeBase, h: th, w: th * 0.58 });
+    }
+
+    // lamps
+    const lamps = [];
+    const lampH = U * 0.85;
+    if (!portrait) {
+      lamps.push({ x: cx - U * 0.62, base: yB, h: lampH });
+      lamps.push({ x: cx + U * 0.62, base: yB, h: lampH });
+    }
+    let lampCount = 0;
+    for (let i = 1; i < rowB.length && lampCount < (portrait ? 2 : 2); i++) {
+      const gl = rowB[i - 1].x + rowB[i - 1].w, gr = rowB[i].x;
+      if (gr - gl > U * 0.14 && Math.abs((gl + gr) / 2 - cx) > U) {
+        lamps.push({ x: (gl + gr) / 2, base: yB, h: lampH * 0.95 });
+        lampCount++;
+        i += 2;
+      }
+    }
+    for (const l of lamps) {
+      l.poly = [[l.x - U * 0.08, l.base], [l.x - U * 0.08, l.base - l.h - U * 0.2], [l.x + U * 0.08, l.base - l.h - U * 0.2], [l.x + U * 0.08, l.base]];
+    }
+
+    // big foreground trees at the edges
+    const frontTrees = portrait
+      ? [{ x: -U * 0.25, base: yB + U * 0.8, h: U * 1.9, w: U * 1.15 }]
+      : [{ x: -U * 0.1, base: yB + U * 0.95, h: U * 2.4, w: U * 1.4 }, { x: W + U * 0.15, base: yB + U * 0.9, h: U * 2.1, w: U * 1.25 }];
+    const triPoly = (t) => [[t.x, t.base - t.h], [t.x - t.w / 2, t.base - t.h * 0.04], [t.x + t.w / 2, t.base - t.h * 0.04]];
+
+    // which slots stay visible after the layers in front cover them
+    const occ = {
+      A: [...midTrees.map(triPoly), ...rowA2.map((h) => h.poly), ...rowB.map((h) => h.poly), ...lamps.map((l) => l.poly), ...frontTrees.map(triPoly)],
+      A2: [...rowB.map((h) => h.poly), ...lamps.map((l) => l.poly), ...frontTrees.map(triPoly)],
+      B: [...frontTrees.map(triPoly)]
+    };
+    let visibleCount = 0;
+    for (const sl of slots) {
+      const x0 = sl.x - 10, x1 = sl.x + sl.w + 10, y0 = sl.y - 4, y1 = sl.y + sl.h + 4;
+      const pts = [[x0, y0], [x1, y0], [x0, y1], [x1, y1], [(x0 + x1) / 2, (y0 + y1) / 2], [(x0 + x1) / 2, y0], [(x0 + x1) / 2, y1], [x0, (y0 + y1) / 2], [x1, (y0 + y1) / 2]];
+      let ok = sl.x >= 4 && sl.x + sl.w <= W - 4 && sl.y >= 4 && sl.y + sl.h <= cardTop - 6;
+      if (ok) {
+        for (const pg of occ[sl.row]) {
+          if (pts.some(([px, py]) => pip(px, py, pg))) { ok = false; break; }
+        }
+      }
+      sl.visible = ok;
+      if (ok) visibleCount++;
+    }
+
+    return { W, H, U, portrait, yA, yA2, yB, horizon, church, rowA, rowA2, rowB, midTrees, lamps, frontTrees, slots, visibleCount, cx };
+  }
+
+  function assignNumbers(g) {
+    const rnd = mulberry32(2412);
+    for (const sl of g.slots) sl.n = 0;
+    let cands = g.slots.filter((s) => s.visible);
+    if (cands.length < 24) cands = cands.concat(g.slots.filter((s) => !s.visible && s.y > 0)).slice(0, 24);
+    let s24 = cands.find((s) => s.church24);
+    g.churchHas24 = !!s24;
+    if (!s24) s24 = cands[Math.floor(rnd() * cands.length)];
+    s24.n = 24;
+    const rest = cands.filter((s) => s !== s24);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    rest.slice(0, 23).forEach((s, i) => { s.n = i + 1; });
+  }
+
+  /* ---------- Markup ---------- */
+  function roofYAt(h, px) {
+    const apexX = h.x + h.w / 2, run = h.w / 2 + h.eave;
+    return h.top - h.roofH * (1 - Math.abs(px - apexX) / run);
+  }
+
+  function archPath(x, base, w, h) {
+    return `M${f(x)},${f(base)} L${f(x)},${f(base - h + w / 2)} A${f(w / 2)},${f(w / 2)} 0 0 1 ${f(x + w)},${f(base - h + w / 2)} L${f(x + w)},${f(base)} Z`;
+  }
+
+  function doorMarkup(cx, base, w, h, color, wreath) {
+    let m = `<path d="${archPath(cx - w / 2, base, w, h)}" fill="${color}"/>`;
+    m += `<circle cx="${f(cx + w * 0.28)}" cy="${f(base - h * 0.42)}" r="${f(Math.max(0.8, w * 0.06))}" fill="#e8c77a"/>`;
+    if (wreath) {
+      const r = w * 0.24;
+      m += `<circle cx="${f(cx)}" cy="${f(base - h * 0.62)}" r="${f(r)}" fill="none" stroke="#3f6b52" stroke-width="${f(Math.max(1.2, w * 0.11))}"/>`;
+      m += `<circle cx="${f(cx)}" cy="${f(base - h * 0.62 + r)}" r="${f(Math.max(0.9, w * 0.06))}" fill="#b8443a"/>`;
+    }
+    return m;
+  }
+
+  function houseMarkup(h, U, rnd) {
+    const t = U * h.s * 0.07;
+    let m = '';
+    if (h.chimney) {
+      const px = h.x + h.w * 0.7, ry = roofYAt(h, px), cw = U * h.s * 0.11, ch = h.roofH * 0.5;
+      m += rect(px - cw / 2, ry - ch, cw, ch + 6, h.roofColor);
+      m += rect(px - cw / 2 - 1.5, ry - ch - t * 0.8, cw + 3, t * 0.95, SNOW, `rx="${f(t * 0.4)}"`);
+    }
+    m += rect(h.x, h.top, h.w, h.base - h.top + 3, h.color);
+    m += rect(h.x, h.top, h.w, t * 0.8, 'rgba(30,15,35,0.14)');
+    m += poly(shift(h.roof, -t), SNOW);
+    m += poly(h.roof, h.roofColor);
+    if (h.roofType !== 'step') {
+      const [l, a, r] = h.roof;
+      for (const [p, q] of [[l, a], [a, r]]) {
+        const n = 2 + Math.floor(rnd() * 2);
+        for (let k = 0; k < n; k++) {
+          const u = 0.2 + rnd() * 0.6;
+          m += `<circle cx="${f(p[0] + (q[0] - p[0]) * u)}" cy="${f(p[1] + (q[1] - p[1]) * u + t * 0.15)}" r="${f(t * (0.35 + rnd() * 0.25))}" fill="${SNOW}"/>`;
+        }
+      }
+    }
+    if (h.door) m += doorMarkup(h.x + h.w / 2, h.base, h.doorW, h.doorH, mix(h.roofColor, '#000000', 0.15), h.wreath);
+    return m;
+  }
+
+  function churchMarkup(c, U) {
+    const wall = mix('#ece2d2', HAZE, 0.18), roof = mix('#3d2f45', HAZE, 0.2);
+    const t = U * c.s * 0.07;
+    let m = '';
+    const nTop = c.base - c.naveH;
+    const nRoof = [[c.naveX - c.naveW * 0.04, nTop], [c.naveX + c.naveW / 2, nTop - c.naveRoof], [c.naveX + c.naveW * 1.04, nTop]];
+    m += rect(c.naveX, nTop, c.naveW, c.naveH + 3, wall);
+    m += poly(shift(nRoof, -t), SNOW) + poly(nRoof, roof);
+    const tTop = c.base - c.towerH;
+    m += rect(c.towerX, tTop, c.towerW, c.towerH + 3, mix(wall, '#ffffff', 0.15));
+    m += rect(c.towerX - c.towerW * 0.06, tTop - t * 0.7, c.towerW * 1.12, t * 1.4, roof);
+    const sp = [[c.towerX - c.towerW * 0.04, tTop - t * 0.5], [c.towerX + c.towerW / 2, tTop - c.spireH], [c.towerX + c.towerW * 1.04, tTop - t * 0.5]];
+    m += poly(shift(sp, -t * 0.8), SNOW) + poly(sp, roof);
+    m += `<circle cx="${f(c.spireX)}" cy="${f(tTop - c.spireH - U * c.s * 0.05)}" r="${f(U * c.s * 0.045)}" fill="#d9b45a"/>`;
+    const dw = U * c.s * 0.26, dh = U * c.s * 0.42;
+    m += doorMarkup(c.naveX + c.naveW / 2, c.base, dw, dh, mix(roof, '#000000', 0.2), true);
+    return m;
+  }
+
+  function treeMarkup(tr, col) {
+    const { x, base, h, w } = tr;
+    let m = rect(x - w * 0.06, base - h * 0.14, w * 0.12, h * 0.14 + 3, '#3b2b2e');
+    for (let i = 2; i >= 0; i--) {
+      const top = base - h + i * h * 0.25, bot = top + h * 0.46, hw = (w / 2) * (0.5 + i * 0.25);
+      m += poly([[x, top], [x - hw, bot], [x + hw, bot]], col);
+      m += poly([[x - hw, bot], [x + hw, bot], [x + hw * 0.78, bot - h * 0.035], [x - hw * 0.78, bot - h * 0.035]], SNOW);
+      const tip = (bot - top) * 0.28;
+      m += poly([[x, top], [x - hw * 0.28, top + tip], [x - hw * 0.1, top + tip * 0.8], [x, top + tip * 1.05], [x + hw * 0.12, top + tip * 0.8], [x + hw * 0.28, top + tip]], SNOW);
+    }
+    return m;
+  }
+
+  function lampMarkup(l, U) {
+    const pw = Math.max(2, U * 0.035), y = l.base - l.h;
+    let m = rect(l.x - pw / 2, y, pw, l.h + 2, '#2d2434');
+    m += rect(l.x - pw * 1.8, l.base - U * 0.05, pw * 3.6, U * 0.05, '#2d2434');
+    m += poly([[l.x - U * 0.07, y], [l.x + U * 0.07, y], [l.x + U * 0.05, y - U * 0.13], [l.x - U * 0.05, y - U * 0.13]], '#3a2d43');
+    m += poly([[l.x - U * 0.085, y - U * 0.13], [l.x + U * 0.085, y - U * 0.13], [l.x, y - U * 0.21]], '#2d2434');
+    m += poly([[l.x - U * 0.06, y - U * 0.15], [l.x + U * 0.06, y - U * 0.15], [l.x, y - U * 0.22]], SNOW);
+    return m;
+  }
+  function lampLight(l, U) {
+    const y = l.base - l.h;
+    return `<g class="flick" style="animation-delay:-${f((l.x % 7) / 2)}s"><circle class="lampglow" cx="${f(l.x)}" cy="${f(y - U * 0.065)}" r="${f(U * 0.45)}"/></g>` +
+      poly([[l.x - U * 0.055, y - U * 0.01], [l.x + U * 0.055, y - U * 0.01], [l.x + U * 0.04, y - U * 0.12], [l.x - U * 0.04, y - U * 0.12]], '#ffd889');
+  }
+
+  function paneD(sl) {
+    const { w, h, type } = sl;
+    if (type === 'round') {
+      const r = w / 2;
+      return `M${f(r)},0 A${f(r)},${f(r)} 0 1 1 ${f(r)},${f(2 * r)} A${f(r)},${f(r)} 0 1 1 ${f(r)},0 Z`;
+    }
+    if (type === 'arch') {
+      return `M0,${f(h)} L0,${f(w / 2)} A${f(w / 2)},${f(w / 2)} 0 0 1 ${f(w)},${f(w / 2)} L${f(w)},${f(h)} Z`;
+    }
+    const rr = Math.min(1.5, w * 0.08);
+    return `M${f(rr)},0 H${f(w - rr)} Q${f(w)},0 ${f(w)},${f(rr)} V${f(h - rr)} Q${f(w)},${f(h)} ${f(w - rr)},${f(h)} H${f(rr)} Q0,${f(h)} 0,${f(h - rr)} V${f(rr)} Q0,0 ${f(rr)},0 Z`;
+  }
+  function mullD(sl) {
+    const { w, h, type } = sl;
+    const m = Math.max(1.1, Math.min(w, h) * 0.085);
+    const hy = type === 'arch' ? h * 0.55 : h * 0.47;
+    return rect(w / 2 - m / 2, 0, m, h, 'inherit') + rect(0, hy - m / 2, w, m, 'inherit');
+  }
+
+  function slotMarkup(sl, i) {
+    const d = paneD(sl), r = Math.max(sl.w, sl.h) * 1.9, cx = sl.w / 2, cy = sl.h / 2;
+    const delay = -((i * 1.37) % 5.6);
+    const core = `<path class="pane-dark" d="${d}"/>` +
+      `<g class="flick" style="animation-delay:${delay.toFixed(2)}s"><circle class="halo" cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}"/><path class="pane-lit" d="${d}"/></g>` +
+      `<g class="mull" fill="${sl.frame}">${mullD(sl).replace(/fill="inherit"/g, '')}</g>`;
+    const tr = `transform="translate(${f(sl.x)},${f(sl.y)})"`;
+    if (sl.n) {
+      const fs = Math.max(7, Math.min(sl.w * 0.62, sl.h * 0.5));
+      return `<g class="win" data-n="${sl.n}" data-frame="${sl.frame}" ${tr} aria-hidden="true">` +
+        `<rect class="hit" x="-6" y="-6" width="${f(sl.w + 12)}" height="${f(sl.h + 12)}"/>${core}` +
+        `<path class="ring" d="${d}"/>` +
+        `<text class="no" x="${f(cx)}" y="${f(sl.type === 'arch' ? sl.h * 0.6 : cy)}" font-size="${f(fs)}">${sl.n}</text></g>`;
+    }
+    if (sl.type === 'rect') {
+      return `<g class="shut" ${tr}><circle class="slitglow" cx="${f(cx)}" cy="${f(cy)}" r="${f(r * 0.55)}"/>${core}` +
+        `<rect class="slit" x="${f(cx - 0.8)}" y="1" width="1.6" height="${f(sl.h - 2)}"/>` +
+        rect(0, 0, sl.w / 2 - 0.3, sl.h, sl.shutter, 'class="sh l"') +
+        rect(sl.w / 2 + 0.3, 0, sl.w / 2 - 0.3, sl.h, sl.shutter, 'class="sh r"') + `</g>`;
+    }
+    return `<g class="plain" ${tr}>${core}</g>`;
+  }
+
+  let geo = null;
+  let winEls = [];
+  let plainEls = [];
+
+  function render(g) {
+    const { W, H, U, horizon, yA, yB, portrait } = g;
+    const r = mulberry32(77);
+    const out = {};
+    for (const L of LAYER_DEFS) out[L.key] = { paper: '', lights: '' };
+
+    // sky
+    {
+      const cols = ['#3e3252', '#54405f', '#77566f', '#a26f7a', '#cf8f80', '#e9b694'];
+      const fr = [0, 0.3, 0.52, 0.7, 0.84, 0.95];
+      let s = rect(-80, -40, W + 160, H + 80, cols[0]);
+      for (let i = 1; i < cols.length; i++) {
+        s += `<path d="${fillBelow(wave(horizon * fr[i], U * 0.09, 36, r, W, 1.3).pts, H)}" fill="${cols[i]}"/>`;
+      }
+      const mx = W * (portrait ? 0.8 : 0.84), my = Math.max(U * 0.6, horizon * 0.2), mr = U * 0.3;
+      s += `<path d="M${f(mx)},${f(my - mr)} A${f(mr)},${f(mr)} 0 1 0 ${f(mx)},${f(my + mr)} A${f(mr * 0.7)},${f(mr)} 0 1 1 ${f(mx)},${f(my - mr)} Z" fill="#f3e7cf"/>`;
+      out.sky.paper = s;
+      let st = '';
+      const n = Math.max(30, Math.round((W * horizon) / 7000));
+      for (let i = 0; i < n; i++) {
+        const x = r() * W, y = 6 + r() * horizon * 0.66;
+        if (Math.hypot(x - mx, y - my) < mr * 1.8) continue;
+        const delay = (-r() * 4).toFixed(2);
+        if (r() < 0.3) {
+          const sz = U * (0.04 + r() * 0.045);
+          st += `<polygon class="${r() < 0.6 ? 'tw' : ''}" style="animation-delay:${delay}s" points="${P(starPts(x, y, sz, sz * 0.44, 5))}" fill="#f1dfb0"/>`;
+        } else {
+          st += `<circle class="${r() < 0.4 ? 'tw' : ''}" style="animation-delay:${delay}s" cx="${f(x)}" cy="${f(y)}" r="${f(0.7 + r() * 1.1)}" fill="#f5e9cf" opacity="0.85"/>`;
+        }
+      }
+      out.sky.lights = st;
+    }
+
+    // far ridges
+    {
+      const back = wave(horizon - U * 0.2, U * 0.32, 26, r, W, 2.4);
+      const front = wave(horizon + U * 0.35, U * 0.28, 26, r, W, 1.9);
+      out.far.paper =
+        `<path d="${fillBelow(back.pts, H)}" fill="#d9cfe0"/>` +
+        `<path d="${fillBelow(shift(back.pts, U * 0.07), H)}" fill="#8c7f9f"/>` +
+        `<path d="${fillBelow(front.pts, H)}" fill="#e0d9e6"/>` +
+        `<path d="${fillBelow(shift(front.pts, U * 0.07), H)}" fill="#6e6a8a"/>`;
+    }
+
+    // mid hill with distant trees
+    {
+      const hill = wave(yA - U * 0.45, U * 0.15, 24, r, W, 1.6);
+      let m = '';
+      let x = -20;
+      while (x < W + 20) {
+        x += U * (0.08 + r() * 0.35);
+        if (r() < 0.45) continue;
+        const th = U * (0.12 + r() * 0.14), y = hill.yAt(x) + 3;
+        m += poly([[x, y - th], [x - th * 0.32, y], [x + th * 0.32, y]], '#5b6a72');
+      }
+      out.mid.paper = m + `<path d="${fillBelow(hill.pts, H)}" fill="#ddd3df"/>`;
+    }
+
+    // the Christmas star, behind the church
+    {
+      const sx = g.church.spireX, sy = g.church.spireTopY - U * 0.75, sr = U * 0.32;
+      out.star.lights = `<g transform="translate(${f(sx)},${f(sy)})"><g class="xstar-inner" style="--rise:${f(U * 2.4)}px">` +
+        `<circle r="${f(U * 1.1)}" fill="url(#starGlow)"/>` +
+        `<polygon points="${P(starPts(0, 0, sr, sr * 0.38, 8))}" fill="#f6cf62"/>` +
+        `<polygon points="${P(starPts(0, 0, sr * 0.55, sr * 0.25, 4))}" fill="#fff3c6"/></g></g>`;
+    }
+
+    // back row and church
+    {
+      let m = churchMarkup(g.church, U);
+      for (const h of g.rowA) m += houseMarkup(h, U, r);
+      const amp = U * 0.035;
+      m += `<path d="${fillBelow(wave(yA - amp * 1.4, amp, 22, r, W, 0.8).pts, H)}" fill="#e9e1e8"/>`;
+      out.rowA.paper = m;
+    }
+
+    // trees (and middle row on tall screens)
+    {
+      let m = '';
+      for (const t of g.midTrees) m += treeMarkup(t, '#3d5f57');
+      if (portrait) {
+        for (const h of g.rowA2) m += houseMarkup(h, U, r);
+        const amp = U * 0.035;
+        m += `<path d="${fillBelow(wave(g.yA2 - amp * 1.4, amp, 22, r, W, 0.8).pts, H)}" fill="#eee8ed"/>`;
+      } else {
+        const amp = U * 0.04;
+        m += `<path d="${fillBelow(wave(yA + U * 0.12, amp, 22, r, W, 0.9).pts, H)}" fill="#eee8ed"/>`;
+      }
+      out.trees.paper = m;
+    }
+
+    // front row with lamps
+    {
+      let m = '';
+      for (const h of g.rowB) m += houseMarkup(h, U, r);
+      for (const l of g.lamps) m += lampMarkup(l, U);
+      const amp = U * 0.035;
+      m += `<path d="${fillBelow(wave(yB - amp * 1.4, amp, 22, r, W, 0.8).pts, H)}" fill="#f2edf0"/>`;
+      out.rowB.paper = m;
+      out.rowB.lights = g.lamps.map((l) => lampLight(l, U)).join('');
+    }
+
+    // foreground snowbank and big trees
+    {
+      let m = '';
+      for (const t of g.frontTrees) m += treeMarkup(t, '#29463f');
+      m += `<path d="${fillBelow(wave(yB + U * 0.12, U * 0.06, 26, r, W, 1.1).pts, H)}" fill="#f8f5f5"/>`;
+      out.front.paper = m;
+    }
+
+    // windows go in the lights layer of their row
+    const rowKey = { A: 'rowA', A2: 'trees', B: 'rowB' };
+    g.slots.forEach((sl, i) => { out[rowKey[sl.row]].lights += slotMarkup(sl, i); });
+
+    const vb = `${-40} ${-16} ${f(W + 80)} ${f(H + 32)}`;
+    for (const L of layers) {
+      const o = out[L.def.key];
+      const paper = o.paper
+        ? `<svg class="paper" viewBox="${vb}" preserveAspectRatio="none" aria-hidden="true" style="filter:${L.def.shadow}"><g filter="url(#paper)">${o.paper}</g></svg>`
+        : '';
+      const lights = o.lights ? `<svg class="lights" viewBox="${vb}" preserveAspectRatio="none">${o.lights}</svg>` : '';
+      L.el.innerHTML = paper + lights;
+    }
+
+    winEls = Array.from(scene.querySelectorAll('.win')).map((el) => ({ el, n: Number(el.dataset.n) }));
+    plainEls = Array.from(scene.querySelectorAll('.plain'));
+    sceneKey = '';
+  }
+
+  function build() {
+    const W = scene.clientWidth, H = scene.clientHeight;
+    if (W < 10 || H < 10) return;
+    const cardTop = cardWrap.getBoundingClientRect().top;
+    const portrait = W / H < 0.9;
+    let U0 = portrait ? Math.min(W / 5.4, cardTop / 6.2) : Math.min(W / 12.5, cardTop / 5.6);
+    U0 = clamp(U0, 34, 130);
+    let g = null;
+    for (let a = 0; a < 6; a++) {
+      g = generate(W, H, cardTop, portrait, U0 * Math.pow(0.9, a));
+      if (g.visibleCount >= 24) break;
+    }
+    assignNumbers(g);
+    geo = g;
+    render(g);
+    tick(true);
+  }
+
+  /* ---------- Time ---------- */
+  const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const fmtLong = (d) => `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  const fmtDay = (d, withYear) => `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}${withYear ? ' ' + d.getFullYear() : ''}`;
+  const plural = (n, one, many) => (n === 1 ? one : many);
+  const pad = (n) => String(n).padStart(2, '0');
+
+  function christmasFor(d) {
+    const y = d.getFullYear();
+    return d >= new Date(y, 11, 26) ? new Date(y + 1, 11, 25) : new Date(y, 11, 25);
+  }
+  function daysBetween(a, b) {
+    return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000);
+  }
+  function stateAt(now) {
+    const y = now.getFullYear(), mo = now.getMonth(), da = now.getDate();
+    const isXmas = mo === 11 && da === 25;
+    const target = christmasFor(now);
+    const s = Math.max(0, Math.floor((target - now) / 1000));
+    const sleeps = daysBetween(now, target);
+    let lit = 0, tonight = 0;
+    if (mo === 11) { lit = Math.min(24, da); if (da <= 24) tonight = da; }
+    return {
+      now, isXmas, target, sleeps, lit, tonight,
+      allOpen: mo === 11 && da >= 24,
+      first: new Date(target.getFullYear(), 11, 1),
+      d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), sec: s % 60
+    };
+  }
+
+  const els = {
+    count: $('#count'), xmas: $('#xmasTitle'),
+    nd: $('#nd'), nh: $('#nh'), nm: $('#nm'), ns: $('#ns'),
+    ld: $('#ld'), lh: $('#lh'), lm: $('#lm'), ls: $('#ls'),
+    sleeps: $('#sleeps'), status: $('#status'), timer: $('#timer'),
+    slider: $('#day'), out: $('#dayOut'), todayBtn: $('#todayBtn'), previewRow: $('#previewRow')
+  };
+  const setText = (el, t) => { if (el.textContent !== t) el.textContent = t; };
+
+  let k = 0;
+  let realDay = -1;
+  let lastSec = -1;
+  let sceneKey = '';
+  let lastState = null;
+
+  function setupSlider() {
+    const now = new Date();
+    const max = daysBetween(now, christmasFor(now));
+    els.slider.max = String(max);
+    if (k > max) k = max;
+    els.slider.value = String(k);
+    els.previewRow.hidden = max === 0;
+  }
+
+  function statusText(st) {
+    const mo = st.now.getMonth(), da = st.now.getDate();
+    if (st.isXmas) return 'Every window in the village is lit, and the star is up over the church.';
+    if (mo === 11 && da === 24) {
+      return geo && geo.churchHas24
+        ? "It's Christmas Eve. Every window in the village is lit, and window 24 is glowing in the church tower."
+        : "It's Christmas Eve. Every window in the village is lit, and window 24 has just come on.";
+    }
+    if (mo === 11 && da > 25) return 'Every window is still lit. The village is already counting down to next Christmas.';
+    if (st.lit === 0) return `All 24 Advent windows are dark for now. The first one lights on ${fmtDay(st.first)}.`;
+    return `${st.lit} of 24 Advent windows ${plural(st.lit, 'is', 'are')} lit. Window ${st.tonight} came on tonight. Tap a lit window to look inside.`;
+  }
+
+  function applyScene(st) {
+    const key = `${st.lit}|${st.tonight}|${st.allOpen}|${st.isXmas}|${winEls.length}`;
+    if (key === sceneKey) return;
+    sceneKey = key;
+    scene.classList.toggle('allopen', st.allOpen);
+    scene.classList.toggle('xmas', st.isXmas);
+    const year = st.now.getFullYear();
+    for (const w of winEls) {
+      const lit = st.allOpen || w.n <= st.lit;
+      w.el.classList.toggle('lit', lit);
+      w.el.classList.toggle('tonight', w.n === st.tonight);
+      if (lit) {
+        w.el.setAttribute('role', 'button');
+        w.el.setAttribute('tabindex', '0');
+        w.el.setAttribute('aria-label', `Window ${w.n} is lit. Look inside.`);
+        w.el.removeAttribute('aria-hidden');
+      } else {
+        w.el.removeAttribute('role');
+        w.el.removeAttribute('tabindex');
+        w.el.removeAttribute('aria-label');
+        w.el.setAttribute('aria-hidden', 'true');
+      }
+      w.el.dataset.year = String(year);
+    }
+    for (const p of plainEls) p.classList.toggle('lit', st.allOpen);
+  }
+
+  function tick(force) {
+    const real = new Date();
+    if (real.getDate() !== realDay) { realDay = real.getDate(); setupSlider(); force = true; }
+    const sec = Math.ceil(real.getTime() / 1000);   // the countdown changes exactly when this does
+    if (!force && sec === lastSec) return;
+    lastSec = sec;
+    const sim = new Date(real.getTime());
+    if (k) sim.setDate(sim.getDate() + k);
+    const st = stateAt(sim);
+    lastState = st;
+
+    els.count.hidden = st.isXmas;
+    els.xmas.hidden = !st.isXmas;
+    if (!st.isXmas) {
+      setText(els.nd, String(st.d)); setText(els.ld, plural(st.d, 'day', 'days'));
+      setText(els.nh, pad(st.h)); setText(els.lh, plural(st.h, 'hour', 'hours'));
+      setText(els.nm, pad(st.m)); setText(els.lm, plural(st.m, 'minute', 'minutes'));
+      setText(els.ns, pad(st.sec)); setText(els.ls, plural(st.sec, 'second', 'seconds'));
+    }
+    setText(els.sleeps, st.isXmas
+      ? `Christmas Day, ${fmtLong(st.now)}`
+      : `${st.sleeps} ${plural(st.sleeps, 'sleep', 'sleeps')} until Christmas morning, ${fmtLong(st.target)}`);
+    setText(els.status, statusText(st));
+    setText(els.out, k === 0 ? `Today, ${fmtDay(sim)}` : fmtDay(sim, sim.getFullYear() !== real.getFullYear()));
+    els.todayBtn.disabled = k === 0;
+    setText(els.timer, st.isXmas
+      ? "It's Christmas Day."
+      : `${st.d} ${plural(st.d, 'day', 'days')}, ${st.h} ${plural(st.h, 'hour', 'hours')} and ${st.m} ${plural(st.m, 'minute', 'minutes')} until Christmas Day.`);
+    applyScene(st);
+  }
+
+  els.slider.addEventListener('input', () => { k = Number(els.slider.value) || 0; tick(true); });
+  els.todayBtn.addEventListener('click', () => { k = 0; els.slider.value = '0'; tick(true); els.slider.focus(); });
+
+  /* ---------- Look inside a window ---------- */
+  const SIL = '#3a2944';
+  const LIGHT = '#fff1c2';
+  const head = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>`;
+  const torso = (cx, top, w, bottom) =>
+    `<path d="M${cx - w / 2},${bottom} C${cx - w / 2},${top + 18} ${cx - w * 0.34},${top} ${cx},${top} C${cx + w * 0.34},${top} ${cx + w / 2},${top + 18} ${cx + w / 2},${bottom} Z"/>`;
+  const gb = (x, y) =>
+    `<circle cx="${x}" cy="${y - 15}" r="6.5"/><path d="M${x - 4},${y - 9} L${x - 13},${y - 7} Q${x - 16},${y - 2} ${x - 11},${y} L${x - 5},${y - 1} L${x - 8},${y + 12} Q${x - 7},${y + 16} ${x - 3},${y + 14} L${x},${y + 6} L${x + 3},${y + 14} Q${x + 7},${y + 16} ${x + 8},${y + 12} L${x + 5},${y - 1} L${x + 11},${y} Q${x + 16},${y - 2} ${x + 13},${y - 7} L${x + 4},${y - 9} Z"/>`;
+
+  const SCENES = [
+    {
+      text: 'A family is having dinner by candlelight.',
+      art: () => `<g fill="${SIL}">
+        <path d="M100,0 V40" stroke="${SIL}" stroke-width="2.5"/>
+        <path d="M80,58 Q100,32 120,58 Z"/>
+        ${head(52, 110, 15)}${torso(52, 128, 52, 176)}
+        ${head(150, 106, 16)}${torso(150, 125, 56, 176)}
+        ${head(98, 130, 11)}${torso(98, 144, 36, 176)}
+        <rect x="16" y="170" width="168" height="10" rx="2"/>
+        <rect x="28" y="180" width="7" height="60"/><rect x="165" y="180" width="7" height="60"/>
+        <rect x="124" y="150" width="7" height="20"/>
+      </g><ellipse cx="127.5" cy="143" rx="3.6" ry="6.5" fill="${LIGHT}"/>`
+    },
+    {
+      text: 'The cat has claimed the warmest windowsill.',
+      art: () => `<g fill="${SIL}">
+        <rect x="0" y="198" width="200" height="42"/>
+        <path d="M28,198 L32,172 L58,172 L62,198 Z"/>
+        <ellipse cx="38" cy="160" rx="7" ry="15" transform="rotate(-25 38 160)"/>
+        <ellipse cx="53" cy="158" rx="7" ry="16" transform="rotate(20 53 158)"/>
+        <ellipse cx="45" cy="150" rx="6" ry="17"/>
+        <ellipse cx="124" cy="174" rx="31" ry="26"/>
+        <circle cx="102" cy="138" r="17"/>
+        <polygon points="88,131 91,110 101,124"/>
+        <polygon points="104,122 113,107 116,128"/>
+        <path d="M152,190 C178,196 184,166 166,154" fill="none" stroke="${SIL}" stroke-width="8" stroke-linecap="round"/>
+        <path d="M0,22 Q50,52 100,30 Q150,52 200,22" fill="none" stroke="${SIL}" stroke-width="2.5"/>
+        <circle cx="25" cy="36" r="4.5"/><circle cx="52" cy="42" r="4.5"/><circle cx="78" cy="37" r="4.5"/>
+        <circle cx="122" cy="37" r="4.5"/><circle cx="148" cy="42" r="4.5"/><circle cx="175" cy="36" r="4.5"/>
+      </g>`
+    },
+    {
+      text: 'Someone is putting the star on the tree.',
+      art: () => `<g fill="${SIL}">
+        <polygon points="132,46 102,98 162,98"/>
+        <polygon points="132,76 90,142 174,142"/>
+        <polygon points="132,112 78,198 186,198"/>
+        <rect x="125" y="198" width="14" height="12"/>
+        <path d="M112,210 L152,210 L148,240 L116,240 Z"/>
+        ${head(52, 94, 13)}${torso(52, 110, 44, 240)}
+        <path d="M60,120 L96,66" stroke="${SIL}" stroke-width="9" stroke-linecap="round"/>
+      </g>
+      <polygon points="${P(starPts(101, 58, 10, 4.4, 5))}" fill="${LIGHT}"/>
+      <g fill="#ffe39a"><circle cx="120" cy="88" r="4"/><circle cx="146" cy="122" r="4.5"/><circle cx="110" cy="160" r="5"/><circle cx="158" cy="178" r="4.5"/><circle cx="132" cy="150" r="4"/></g>`
+    },
+    {
+      text: 'Someone is reading by the fire.',
+      art: () => `<g fill="${SIL}">
+        <rect x="118" y="112" width="74" height="128"/>
+        <rect x="110" y="104" width="90" height="10"/>
+        <path d="M128,114 H138 V132 L146,138 L141,146 L128,140 Z"/>
+        <path d="M168,114 H178 V132 L186,138 L181,146 L168,140 Z"/>
+        <path d="M22,240 V96" stroke="${SIL}" stroke-width="3"/>
+        <path d="M10,98 L34,98 L28,78 L16,78 Z"/>
+        <path d="M30,240 V150 Q30,140 40,140 H86 Q96,140 96,150 V240 Z"/>
+        ${head(64, 116, 13)}${torso(64, 132, 40, 172)}
+        <path d="M74,150 L92,142 L94,158 L76,164 Z"/>
+      </g>
+      <rect x="133" y="150" width="44" height="90" fill="#ff9c48"/>
+      <path d="M137,240 Q141,206 150,222 Q154,186 162,214 Q168,196 173,240 Z" fill="#ffd77a"/>
+      <ellipse cx="22" cy="104" rx="14" ry="5" fill="${LIGHT}" opacity="0.8"/>`
+    },
+    {
+      text: 'Gingerbread is cooling on the tray.',
+      art: () => `<g fill="${SIL}">
+        <rect x="0" y="186" width="200" height="54"/>
+        <rect x="18" y="176" width="120" height="7" rx="2"/>
+        ${gb(42, 160)}${gb(78, 160)}${gb(114, 160)}
+        <path d="M144,150 H196 Q194,182 170,186 Q146,182 144,150 Z"/>
+        <path d="M178,150 L190,118" stroke="${SIL}" stroke-width="5" stroke-linecap="round"/>
+        <rect x="10" y="44" width="180" height="6"/>
+        <rect x="22" y="16" width="18" height="28" rx="3"/><rect x="50" y="24" width="14" height="20" rx="3"/><rect x="150" y="12" width="22" height="32" rx="3"/>
+      </g>`
+    },
+    {
+      text: 'Two kids are watching for snow.',
+      art: () => `<g fill="${SIL}">
+        ${head(72, 150, 24)}${torso(72, 174, 86, 240)}
+        ${head(138, 160, 19)}${torso(138, 179, 66, 240)}
+        <circle cx="36" cy="146" r="8"/><circle cx="106" cy="144" r="8"/>
+        <circle cx="114" cy="158" r="7"/><circle cx="166" cy="156" r="7"/>
+        <path d="M100,0 V32" stroke="${SIL}" stroke-width="2"/>
+      </g>
+      <g stroke="${SIL}" stroke-width="3.5" stroke-linecap="round">
+        <path d="M100,34 V70 M84,43 L116,61 M84,61 L116,43"/>
+        <path d="M95,38 L100,43 L105,38 M95,66 L100,61 L105,66"/>
+      </g>`
+    }
+  ];
+
+  const peek = $('#peek');
+  const peekArt = $('#peekArt');
+  let peekReturn = null;
+
+  function openPeek(el) {
+    const n = Number(el.dataset.n);
+    const sc = SCENES[(n * 5 + 2) % SCENES.length];
+    const frame = el.dataset.frame || '#a9553f';
+    peekArt.innerHTML = `<g filter="url(#paper)"><rect width="200" height="240" fill="url(#peekGlow)"/>${sc.art()}` +
+      `<rect x="5" y="5" width="190" height="230" fill="none" stroke="${frame}" stroke-width="10"/></g>`;
+    setText($('#peekTitle'), `Window ${n}`);
+    setText($('#peekText'), sc.text);
+    const year = Number(el.dataset.year) || new Date().getFullYear();
+    setText($('#peekMeta'), `Lit since ${fmtDay(new Date(year, 11, n))}.`);
+    peekReturn = el;
+    peek.hidden = false;
+    $('#peekClose').focus();
+  }
+  function closePeek() {
+    if (peek.hidden) return;
+    peek.hidden = true;
+    if (peekReturn && peekReturn.isConnected) peekReturn.focus();
+    peekReturn = null;
+  }
+  $('#peekClose').addEventListener('click', closePeek);
+  peek.addEventListener('click', (e) => { if (e.target === peek) closePeek(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closePeek();
+    if (!peek.hidden && e.key === 'Tab') { e.preventDefault(); $('#peekClose').focus(); }
+  });
+
+  /* ---------- Parallax and input ---------- */
+  const target = { x: 0, y: 0 }, cur = { x: 0, y: 0 };
+  let lastInput = -1e9;
+  let drag = null;
+
+  scene.addEventListener('pointerdown', (e) => {
+    drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, tx: target.x, ty: target.y, moved: 0, type: e.pointerType };
+  });
+  scene.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'mouse') {
+      target.x = (e.clientX / window.innerWidth) * 2 - 1;
+      target.y = (e.clientY / window.innerHeight) * 2 - 1;
+      lastInput = performance.now();
+      if (drag && drag.id === e.pointerId) drag.moved = Math.max(drag.moved, Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0));
+    } else if (drag && drag.id === e.pointerId) {
+      const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+      drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+      target.x = clamp(drag.tx + dx / (window.innerWidth * 0.35), -1, 1);
+      target.y = clamp(drag.ty + dy / (window.innerHeight * 0.35), -1, 1);
+      lastInput = performance.now();
+    }
+  });
+  scene.addEventListener('pointerup', (e) => {
+    const d = drag;
+    drag = null;
+    if (!d || d.moved > 10) return;
+    const w = e.target.closest ? e.target.closest('.win.lit') : null;
+    if (w) openPeek(w);
+  });
+  scene.addEventListener('pointercancel', () => { drag = null; });
+  scene.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const w = e.target.closest ? e.target.closest('.win.lit') : null;
+    if (w) { e.preventDefault(); openPeek(w); }
+  });
+
+  function frame(now) {
+    const t = now / 1000;
+    let tx = target.x, ty = target.y;
+    if (now - lastInput > 2600) { tx = Math.sin(t * 0.32) * 0.38; ty = Math.sin(t * 0.21 + 1.3) * 0.22; }
+    if (reduce) { tx = 0; ty = 0; }
+    cur.x += (tx - cur.x) * 0.055;
+    cur.y += (ty - cur.y) * 0.055;
+    for (const L of layers) {
+      L.el.style.transform = `translate3d(${(-cur.x * L.def.d * MAXX).toFixed(2)}px, ${(-cur.y * L.def.d * MAXY).toFixed(2)}px, 0)`;
+    }
+    tick(false);
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- Start ---------- */
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(build, 160);
+  });
+  tick(true);
+  build();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => build());
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
